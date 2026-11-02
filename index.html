@@ -1,0 +1,3781 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚚 Система Управления Рейсами</title>
+    <!-- НОВАЯ ВЕРСИЯ FIREBASE (v10) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    
+    <!-- Библиотеки -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* ВАШ CSS ОСТАЕТСЯ БЕЗ ИЗМЕНЕНИЙ */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .login-page { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .login-box { background: white; border-radius: 20px; padding: 40px; max-width: 400px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .login-title { text-align: center; font-size: 2em; color: #2c3e50; margin-bottom: 30px; }
+        .login-icon { text-align: center; font-size: 4em; margin-bottom: 20px; }
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50; }
+        .input-group input { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1em; }
+        .input-group input:focus { outline: none; border-color: #667eea; }
+        .btn-login { width: 100%; padding: 15px; background: #667eea; color: white; border: none; border-radius: 10px; font-size: 1.1em; font-weight: 600; cursor: pointer; }
+        .btn-login:hover { background: #5568d3; }
+        .error-msg { color: #e74c3c; text-align: center; margin-top: 15px; font-weight: 600; }
+        .success-msg { color: #27ae60; text-align: center; margin-top: 15px; font-weight: 600; }
+        .loading { text-align: center; padding: 20px; color: #667eea; font-size: 1.2em; }
+        .container { max-width: 2400px; margin: 0 auto; padding: 20px; }
+        .header { background: white; border-radius: 20px; padding: 20px 30px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .header-left h1 { color: #2c3e50; font-size: 1.8em; margin-bottom: 5px; }
+        .header-left p { color: #7f8c8d; }
+        .header-right { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+        .user-email { font-weight: 600; color: #2c3e50; }
+        .firebase-status { padding: 8px 15px; border-radius: 20px; font-weight: 600; font-size: 0.9em; background: #d4edda; color: #155724; }
+        .btn { padding: 10px 20px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; font-size: 0.95em; }
+        .btn:hover { transform: translateY(-2px); opacity: 0.9; }
+        .btn-logout { background: #e74c3c; color: white; }
+        .btn-download { background: #27ae60; color: white; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-delete { background: #c0392b; color: white; padding: 8px 15px; font-size: 0.9em; }
+        .btn-print-invoice { background: #3498db; color: white; padding: 8px 15px; font-size: 0.95em; }
+        .btn-share { background: #25D366; color: white; padding: 10px 20px; font-size: 0.95em; }
+        .btn-telegram { background: #0088cc; color: white; padding: 10px 20px; font-size: 0.95em; }
+        .btn-telegram-row { background: #0088cc; color: white; padding: 8px 12px; font-size: 0.85em; margin-left: 5px; }
+        .btn-rate { background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: white; font-weight: 600; }
+        .btn-rate:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4); }
+        .tabs { background: white; border-radius: 15px; padding: 15px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); display: flex; gap: 10px; flex-wrap: wrap; }
+        .tab { padding: 12px 30px; border: none; border-radius: 10px; font-weight: 700; font-size: 1em; cursor: pointer; background: #f0f0f0; color: #666; transition: all 0.3s; }
+        .tab.active { background: #667eea; color: white; }
+        .tab:hover:not(.active) { background: #e0e0e0; }
+        .upload-section { background: white; border-radius: 20px; padding: 30px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); text-align: center; }
+        .upload-area { border: 3px dashed #667eea; border-radius: 15px; padding: 40px; cursor: pointer; transition: all 0.3s ease; background: #f8f9fa; }
+        .upload-area:hover { background: #e9ecef; border-color: #764ba2; }
+        .upload-icon { font-size: 4em; margin-bottom: 15px; }
+        .orders-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .order-card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); position: relative; transition: all 0.3s ease; }
+        .order-card:hover { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(0,0,0,0.25); }
+        .order-card-content { cursor: pointer; }
+        .order-icon { font-size: 3em; text-align: center; margin-bottom: 10px; }
+        .order-title { font-size: 1.1em; font-weight: 700; color: #2c3e50; margin-bottom: 8px; text-align: center; }
+        .order-info { color: #7f8c8d; font-size: 0.9em; text-align: center; margin-bottom: 5px; }
+        .order-actions { display: flex; justify-content: center; gap: 10px; margin-top: 15px; padding-top: 15px; border-top: 2px solid #f0f0f0; }
+        .database-section { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow-x: auto; margin-bottom: 20px; }
+        .database-table { width: 100%; border-collapse: collapse; min-width: 1800px; }
+        .database-table th { background: #4a4a4a; color: white; padding: 16px; text-align: center; font-weight: 700; border: 1px solid #000; font-size: 15px; height: 50px; }
+        .database-table td { padding: 14px; border: 1px solid #000; font-weight: 600; font-size: 15px; position: relative; height: 55px; }
+        .database-table tbody tr:hover { background: #f0f0f0; }
+        .editable-cell { cursor: pointer; transition: all 0.2s; }
+        .editable-cell:hover { background: #fff3cd !important; }
+        .cell-input { width: 100%; border: 2px solid #667eea; padding: 10px; font-size: 15px; font-weight: 600; box-sizing: border-box; }
+        .cell-input:focus { outline: none; border-color: #764ba2; }
+        .som-column { background: #fff8dc !important; font-weight: bold; }
+        .status-cell { text-align: center; cursor: pointer; font-weight: bold; }
+        .status-unpaid { background: #f8d7da; color: #721c24; }
+        .status-paid { background: #d4edda; color: #155724; }
+        .filters { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        .filter-btn { padding: 10px 20px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+        .filter-btn.active { background: #667eea; color: white; }
+        .filter-btn:not(.active) { background: #f0f0f0; color: #666; }
+        .filter-btn:hover:not(.active) { background: #e0e0e0; }
+        .table-filters { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; flex-wrap: wrap; }
+        .search-input { padding: 10px 15px; border: 2px solid #667eea; border-radius: 10px; font-size: 0.95em; min-width: 250px; }
+        .search-input:focus { outline: none; border-color: #764ba2; }
+        .date-filter { padding: 10px 15px; border: 2px solid #667eea; border-radius: 10px; font-size: 0.95em; font-weight: 600; }
+        .totals-summary { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 25px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .totals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        .total-card { background: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .total-card-label { color: #7f8c8d; font-size: 0.9em; margin-bottom: 8px; }
+        .total-card-value { font-size: 2em; font-weight: bold; }
+        .total-all { color: #2c3e50; }
+        .total-paid { color: #27ae60; }
+        .total-unpaid { color: #e74c3c; }
+        .total-som { color: #f39c12; }
+        .employee-debts { margin-top: 15px; }
+        .employee-debt-item { background: white; padding: 12px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .employee-name { font-weight: bold; color: #2c3e50; }
+        .employee-debt { font-size: 1.2em; font-weight: bold; color: #e74c3c; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; border-radius: 15px; padding: 30px; max-width: 98%; width: 100%; max-height: 95vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+        .modal-close { position: fixed; top: 30px; right: 30px; font-size: 3em; cursor: pointer; color: white; background: #e74c3c; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 1001; }
+        .modal-close:hover { transform: rotate(90deg) scale(1.1); }
+        .modal-title { font-size: 1.8em; font-weight: 700; color: #2c3e50; margin-bottom: 20px; text-align: center; }
+        .hidden { display: none !important; }
+        .invoice-print-area { display: none; }
+        .total-row {
+            background: #fffacd !important;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .total-row td {
+            background: #fffacd !important;
+            border: 2px solid #000 !important;
+            padding: 16px !important;
+            height: 60px !important;
+        }
+        .share-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: center;
+        }
+        
+        @media print {
+            body * { visibility: hidden; }
+            .invoice-print-area, .invoice-print-area * { visibility: visible; }
+            .invoice-print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                display: block !important;
+            }
+            .invoice-print-area:empty { display: none !important; }
+            .print-invoice { page-break-inside: avoid; margin-bottom: 5mm; height: 50vh; }
+            .print-invoice-header {
+                text-align: center;
+                font-size: 20px;
+                font-weight: bold;
+                padding: 15px;
+                border: 3px solid #000;
+                margin-bottom: 10px;
+            }
+            .print-invoice-table {
+                width: 100%;
+                border-collapse: collapse;
+                border: 3px solid #000;
+                margin-bottom: 10px;
+            }
+            .print-invoice-table th,
+            .print-invoice-table td {
+                border: 2px solid #000;
+                padding: 12px;
+                text-align: center;
+                font-size: 15px;
+            }
+            .print-invoice-table th {
+                background: #f0f0f0;
+                font-weight: bold;
+                height: 40px;
+            }
+            .print-invoice-table tbody tr { height: 45px; }
+            .print-invoice-footer {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 15px;
+                padding: 15px;
+                border: 3px solid #000;
+                font-size: 14px;
+            }
+        }
+        
+        @media print {
+            body:not(:has(.invoice-print-area:not(:empty))) * {
+                visibility: visible !important;
+            }
+            body:not(:has(.invoice-print-area:not(:empty))) .header,
+            body:not(:has(.invoice-print-area:not(:empty))) .tabs,
+            body:not(:has(.invoice-print-area:not(:empty))) .filters,
+            body:not(:has(.invoice-print-area:not(:empty))) .table-filters,
+            body:not(:has(.invoice-print-area:not(:empty))) .totals-summary,
+            body:not(:has(.invoice-print-area:not(:empty))) .btn,
+            body:not(:has(.invoice-print-area:not(:empty))) button {
+                display: none !important;
+            }
+            body:not(:has(.invoice-print-area:not(:empty))) .database-section {
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            body:not(:has(.invoice-print-area:not(:empty))) .modal-content {
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            body:not(:has(.invoice-print-area:not(:empty))) {
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            body:not(:has(.invoice-print-area:not(:empty))) .database-table {
+                table-layout: fixed !important;
+                width: 100% !important;
+                font-size: 13px !important;
+                border-collapse: collapse !important;
+            }
+            body:not(:has(.invoice-print-area:not(:empty))) .database-table th,
+            body:not(:has(.invoice-print-area:not(:empty))) .database-table td {
+                width: calc(95% / 25) !important;
+                padding: 0px !important;
+                font-size: 13px !important;
+                line-height: 1 !important;
+                overflow: hidden !important;
+                text-overflow: clip !important;
+                white-space: nowrap !important;
+                border: 2px solid #000000 !important;
+                text-align: center!important;
+                vertical-align: middle!important;
+            }
+            body:not(:has(.invoice-print-area:not(:empty))) .employee-select,
+            body:not(:has(.invoice-print-area:not(:empty))) .cell-input {
+                border: none !important;
+                padding: 0 !important;
+                font-size: 13px !important;
+            }
+        }
+        
+        body:not(:has(.invoice-print-area:not(:empty))) .database-section {
+            transform: scale(0.90);
+            transform-origin: top left;
+            width: 117%;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .voice-notification {
+            position: fixed;
+            right: 20px;
+            background: #27ae60;
+            color: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            font-size: 1.2em;
+            font-weight: bold;
+            z-index: 10000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s ease;
+            transition: opacity 0.3s;
+        }
+        
+        @media (max-width: 768px) {
+            .header { flex-direction: column; text-align: center; }
+            .tabs { flex-direction: column; }
+            .orders-grid { grid-template-columns: 1fr; }
+        }
+        /* Медиа-запросы для мобильных устройств */
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            .header { flex-direction: column; text-align: center; gap: 15px; padding: 15px; }
+            .header h1 { font-size: 24px; }
+            .user-info { justify-content: center; }
+            .tabs { flex-direction: column; gap: 10px; }
+            .tab { width: 100%; text-align: center; }
+            .orders-grid { grid-template-columns: 1fr; gap: 15px; }
+            .order-card { padding: 15px; }
+            .order-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .order-details { gap: 8px; font-size: 14px; }
+            .actions { flex-direction: column; gap: 10px; }
+            .actions button { width: 100%; }
+        }
+        /* Для очень маленьких экранов */
+        @media (max-width: 480px) {
+            .header h1 { font-size: 20px; }
+            .user-info span { font-size: 14px; }
+            .order-card { padding: 12px; }
+            .status-badge { font-size: 11px; padding: 4px 10px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- HTML структура остается без изменений -->
+    <div id="loginPage" class="login-page">
+        <div class="login-box">
+            <div class="login-icon">🔐</div>
+            <div class="login-title" id="authTitle">Вход в систему</div>
+            
+            <div id="loginForm">
+                <div class="input-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="example@gmail.com">
+                </div>
+                <div class="input-group">
+                    <label>Пароль</label>
+                    <input type="password" id="loginPassword" placeholder="Введите пароль">
+                </div>
+                <button class="btn-login" onclick="login()">Войти</button>
+                <div style="text-align: center; margin-top: 15px;">
+
+                </div>
+            </div>
+            
+            <div id="registerForm" class="hidden">
+                <div class="input-group">
+                    <label>Email</label>
+                    <input type="email" id="registerEmail" placeholder="example@gmail.com">
+                </div>
+                <div class="input-group">
+                    <label>Пароль</label>
+                    <input type="password" id="registerPassword" placeholder="Минимум 6 символов">
+                </div>
+                <div class="input-group">
+                    <label>Подтвердите пароль</label>
+                    <input type="password" id="registerPasswordConfirm" placeholder="Повторите пароль">
+                </div>
+
+                <div style="text-align: center; margin-top: 15px;">
+                    <a href="#" onclick="showLoginForm(); return false;" style="color: #667eea; text-decoration: none; font-weight: 600;">Уже есть аккаунт? Войти</a>
+                </div>
+            </div>
+            
+            <div id="loginError" class="error-msg"></div>
+        </div>
+    </div>
+
+    <div id="mainPage" class="hidden">
+        <div class="container">
+            <div class="header">
+                <div class="header-left">
+                    <h1> Система Управления Рейсами</h1>
+                    <p> синхронизация на всех устройствах</p>
+                </div>
+                <div class="header-right">
+                    <div class="firebase-status">База данных подключена</div>
+                    <div class="user-email" id="userEmail"></div>
+                    <button class="btn btn-rate" id="rateBtn" onclick="showRatePopup()">💱 ${getKgzRate()} сом</button>
+                    <button class="btn btn-logout" onclick="logout()">Выход</button>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('main')">🏠 Главная</button>
+                <button class="tab" onclick="switchTab('database')">📊 База данных</button>
+                <button class="tab hidden" id="adminTabBtn" onclick="switchTab('admin')">⚙️ Админ панель</button>
+            </div>
+
+            <div id="mainTab">
+                <div class="upload-section">
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">📁</div>
+                        <div style="font-size: 1.3em; font-weight: 600; color: #2c3e50;">Нажмите или перетащите файлы</div>
+                        <div style="color: #7f8c8d; margin-top: 10px;">Можно выбрать несколько файлов сразу</div>
+                        <input type="file" id="fileInput" accept=".xlsx,.xls" multiple style="display: none;">
+                    </div>
+                </div>
+
+                <div class="totals-summary" id="mainTotalsSummary"></div>
+
+                <div class="filters">
+                    <button class="btn btn-success" onclick="startVoiceSearch('main')" style="font-size: 1.1em;">🎤 Голос</button>
+                    <button class="filter-btn active" onclick="setMainFilter('all')">📋 Все рейсы</button>
+                    <button class="filter-btn" onclick="setMainFilter('paid')">✅ Оплаченные</button>
+                    <button class="filter-btn" onclick="setMainFilter('unpaid')">❌ Неоплаченные</button>
+                    <button class="btn btn-download" onclick="downloadAllOrders()" style="margin-left: auto;">💾 Excel</button>
+                    <button class="btn btn-success" onclick="shareFilteredData('whatsapp')">📱 WhatsApp</button>
+                    <button class="btn btn-telegram" onclick="shareFilteredData('telegram')">📱 Telegram</button>
+                    <button class="btn btn-download" onclick="printMain()">🖨️ Печать</button>
+                </div>
+
+                <div class="orders-grid" id="ordersGrid"></div>
+            </div>
+
+            <div id="databaseTab" class="hidden">
+                <div class="totals-summary" id="totalsSummary"></div>
+                
+                <div class="filters">
+                    <button class="btn btn-success" onclick="startVoiceSearch('database')" style="font-size: 1.1em;">🎤 Голос</button>
+                    <button class="filter-btn active" onclick="setFilter('all')">📋 Все</button>
+                    <button class="filter-btn" onclick="setFilter('paid')">✅ Оплачено</button>
+                    <button class="filter-btn" onclick="setFilter('unpaid')">❌ Не оплачено</button>
+                    <select id="employeeFilter" onchange="filterByEmployee()" style="padding: 10px; border-radius: 10px; font-weight: 600; border: 2px solid #667eea; margin-left: 10px;">
+                        <option value="">👤 Все сотрудники</option>
+                        <option value="">👤 Выбрать</option>
+                    </select>
+                    <input type="date" id="dateFilterFrom" class="date-filter" onchange="filterByDate()" placeholder="С даты">
+                    <input type="date" id="dateFilterTo" class="date-filter" onchange="filterByDate()" placeholder="До даты">
+                    <button class="btn btn-success" onclick="clearDateFilter()">✖ Очистить даты</button>
+                    <button class="btn btn-download" onclick="downloadDatabase()" style="margin-left: auto;">💾 Excel</button>
+                    <button class="btn btn-success" onclick="shareFilteredData('whatsapp')">📱 WhatsApp</button>
+                    <button class="btn btn-telegram" onclick="shareFilteredData('telegram')">📱 Telegram</button>
+                    <button class="btn btn-download" onclick="printDatabase()">🖨️ Печать</button>
+                </div>
+                
+                <div class="database-section">
+                    <h2 style="margin-bottom: 20px; text-align: center; color: #2c3e50;">📊 Все рейсы в одной таблице</h2>
+                    <div class="table-filters">
+                        <input type="text" id="dbSearchInput" class="search-input" placeholder="🔍 Поиск по таблице..." oninput="filterDatabaseTable()">
+                        <button class="btn btn-success" onclick="clearDatabaseSearch()">✖ Очистить</button>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table class="database-table" id="databaseTable">
+                            <thead id="databaseTableHead"></thead>
+                            <tbody id="databaseTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="adminTab" class="hidden">
+                <div class="database-section" style="margin-bottom: 20px;">
+                    <h2 style="margin-bottom: 20px; text-align: center; color: #2c3e50;">💱 Настройка курса</h2>
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; display: flex; gap: 15px; align-items: center; justify-content: center; flex-wrap: wrap;">
+                        <label style="font-weight: 600; font-size: 1.1em;">Курс USD → KGZ:</label>
+                        <input type="number" id="kgzRateInput" step="0.1" 
+                               style="padding: 10px; border: 2px solid #667eea; border-radius: 8px; font-size: 1.1em; font-weight: 600; width: 150px;"
+                               onchange="updateKgzRate(this.value)">
+                        <span style="color: #7f8c8d;">сом</span>
+                    </div>
+                </div>
+                
+                <div class="database-section">
+                    <h2 style="margin-bottom: 20px; text-align: center; color: #2c3e50;">👥 Управление пользователями</h2>
+                    
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 15px;">➕ Добавить нового пользователя</h3>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <input type="email" id="newUserEmail" placeholder="Email" style="flex: 1; min-width: 200px; padding: 10px; border: 2px solid #667eea; border-radius: 8px;">
+                            <input type="password" id="newUserPassword" placeholder="Пароль" style="flex: 1; min-width: 200px; padding: 10px; border: 2px solid #667eea; border-radius: 8px;">
+                            <button class="btn btn-success" onclick="addNewUser()">Добавить пользователя</button>
+                        </div>
+                        <div id="addUserMessage" style="margin-top: 10px; font-weight: 600;"></div>
+                    </div>
+                    
+                    <div style="background: #fff3cd; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 15px; color: #856404;">🔧 Обслуживание базы данных</h3>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                            <button class="btn btn-danger" onclick="cleanupDuplicates()">🗑️ Удалить дубликаты рейсов</button>
+                            <span style="color: #856404; font-size: 0.9em;">Автоматически найдет и удалит все дублирующиеся рейсы из базы данных</span>
+                        </div>
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        <table class="database-table" id="usersTable">
+                            <thead>
+                                <tr>
+                                    <th>Email</th>
+                                    <th>Пароль</th>
+                                    <th>Тип</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="database-section">
+                    <h2 style="margin-bottom: 20px; text-align: center; color: #2c3e50;">📊 Статистика по пользователям</h2>
+                    <div id="userStatsContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="modal">
+        <span class="modal-close" id="modalClose">×</span>
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle"></div>
+            
+            <div id="modalTotalsSummary" class="totals-summary"></div>
+            
+            <div style="text-align: center; margin-bottom: 20px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                <button class="btn btn-success" onclick="startVoiceSearch('modal')" style="font-size: 1.1em;">🎤 Голос</button>
+                <button class="btn btn-download" onclick="downloadCurrentOrder('unpaid')">💾 Excel неоплач.</button>
+                <button class="btn btn-download" onclick="downloadCurrentOrder('all')">💾 Excel все</button>
+                <button class="filter-btn active" onclick="setModalFilter('all')">📋 Все</button>
+                <button class="filter-btn" onclick="setModalFilter('paid')">✅ Оплачено</button>
+                <button class="filter-btn" onclick="setModalFilter('unpaid')">❌ Не оплачено</button>
+                <div class="share-buttons">
+                    <button class="btn btn-success" onclick="shareModalData('whatsapp')">📱 WhatsApp</button>
+                    <button class="btn btn-telegram" onclick="shareModalData('telegram')">📱 Telegram</button>
+                </div>
+                <button class="btn btn-download" onclick="printModal()">🖨️ Печать</button>
+            </div>
+            <div class="table-filters">
+                <input type="text" id="modalSearchInput" class="search-input" placeholder="🔍 Поиск по таблице..." oninput="filterModalTable()">
+                <button class="btn btn-success" onclick="clearModalSearch()">✖ Очистить</button>
+            </div>
+            <div id="tableWrapper"></div>
+        </div>
+    </div>
+
+    <div class="invoice-print-area" id="invoicePrintArea"></div>
+
+    <script>
+// ============================================================================
+// ИСПРАВЛЕНИЯ:
+// 1. Фильтр по датам - конвертация формата YYYY-MM-DD в ДД.ММ.ГГГГ
+// 2. Оптимизация renderDatabase() - DocumentFragment для быстрой вставки
+// 3. Telegram Chat ID - правильный ключ localStorage
+// 4. Единая функция prepareRowForExport для всех Excel экспортов
+// 5. Debounce для поиска - предотвращение лагов
+// 6. Race condition при сохранении - флаг isSavingOrder
+// 7. Универсальная toggleRowStatus для модалки и базы
+// 8. Защита calculateSom() от NaN
+// 9. Пересчет итогов в filterModalTable()
+// 10. Унифицированный формат даты оплаты
+// 11. Удалены debugData() и лишние console.log
+// ============================================================================
+
+// --- ОБНОВЛЕННЫЙ БЛОК ИНИЦИАЛИЗАЦИИ ---
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCkefQU7Jt8-yhXJCR7l2eSxDQFGjMVLb4",
+  authDomain: "kargo-program-7fa29.firebaseapp.com",
+  projectId: "kargo-program-7fa29",
+  storageBucket: "kargo-program-7fa29.firebasestorage.app",
+  messagingSenderId: "717073047804",
+  appId: "1:717073047804:web:1d012598daf84e5fd7f779",
+  measurementId: "G-SP7ZEVLJJ3"
+};
+
+// Инициализация Firebase
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+
+const db = firebase.firestore();
+
+// ПРАВИЛЬНАЯ настройка для стабильной связи
+db.settings({
+    experimentalForceLongPolling: true
+    // УБРАТЬ параметр merge - он здесь не нужен
+});
+
+const auth = firebase.auth();
+// --- КОНЕЦ БЛОКА ---
+
+        let currentUser = null;
+        let orders = [];
+        let currentOrder = null;
+        let currentTab = 'main';
+        let currentFilter = 'all';
+        let mainFilter = 'all';
+        let modalFilter = 'all';
+        let employeeFilter = '';
+        let dateFilterFrom = '';
+        let dateFilterTo = '';
+
+        const ADMIN_EMAIL = '12abc202@gmail.com';
+        const ADMIN_PASSWORD = '111420';
+        
+        const EMPLOYEES = ['Мухаммад Амин', 'Анвар', 'Жолдивой', 'Сирож', 'Ниаз', 'Авазбек', 'Абдумалик', 'Музаффар', 'Фарух', 'Гайрат', 'Нуридин', 'Бухгалтер','Абдулло','Омат','Отабек','Муродил','Абдусайит','Абубакир','Выбрать'];
+        
+        // ИСПРАВЛЕНО: Telegram Chat ID - правильный ключ
+        const TELEGRAM_BOT_TOKEN = '8347926787:AAHYjtv_Tm_EaVy2-V5oDARey1vYIQrZnk4';
+        let telegramChatId = localStorage.getItem('telegram_chat_id') || '';
+
+        // ИСПРАВЛЕНО: Флаг для предотвращения race condition
+        let isSavingOrder = false;
+        let saveQueue = [];
+
+        // ИСПРАВЛЕНО: Debounce для поиска
+        let searchTimeout = null;
+        let modalSearchTimeout = null;
+
+        // Storage functions
+        async function getFromStorage(key) {
+            try {
+                const doc = await db.collection('settings').doc(key).get();
+                if (doc.exists) {
+                    return doc.data().value;
+                }
+                return null;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function cleanData(value) {
+            if (value === undefined || value === null) {
+                return null;
+            }
+            if (typeof value === 'object' && !Array.isArray(value)) {
+                const cleaned = {};
+                for (const key in value) {
+                    if (Object.prototype.hasOwnProperty.call(value, key) && value[key] !== undefined) {
+                        cleaned[key] = cleanData(value[key]);
+                    }
+                }
+                return cleaned;
+            }
+            if (Array.isArray(value)) {
+                return value.map(item => cleanData(item)).filter(item => item !== undefined);
+            }
+            return value;
+        }
+
+        async function setToStorage(key, value) {
+            try {
+                const cleanedValue = cleanData(value);
+                await db.collection('settings').doc(key).set({ value: cleanedValue });
+                return true;
+            } catch (error) {
+                return false;
+            }
+        }
+
+        // ИСПРАВЛЕНО: calculateSom с защитой от NaN
+        function getKgzRate() {
+            const rate = localStorage.getItem('kgz_rate');
+            if (!rate) {
+                localStorage.setItem('kgz_rate', '88.5');
+                return 88.5;
+            }
+            const rateNum = parseFloat(rate);
+            return isNaN(rateNum) ? 88.5 : rateNum;
+        }
+
+        function calculateSom(sumDollar, yulKira) {
+            const rate = typeof getKgzRate === 'function' ? getKgzRate() : 88.5;
+            if (isNaN(rate) || rate <= 0) {
+                console.error('Некорректный курс:', rate);
+                return 0;
+            }
+            
+            const total = (parseFloat(sumDollar) || 0) + (parseFloat(yulKira) || 0);
+            const som = total * rate;
+            return Math.round(som);
+        }
+
+        function setKgzRate(rate) {
+            localStorage.setItem('kgz_rate', rate.toString());
+            const rateBtn = document.getElementById('rateBtn');
+            if (rateBtn) {
+                rateBtn.textContent = `💱 ${rate} сом`;
+            }
+        }
+
+        function extractFlightNumber(fileName) {
+            const match = fileName.match(/(\d+)/);
+            return match ? parseInt(match[1]) : 999999;
+        }
+
+        function sortOrdersByFlightNumber() {
+            orders.sort((a, b) => {
+                const numA = extractFlightNumber(a.fileName);
+                const numB = extractFlightNumber(b.fileName);
+                return numA - numB;
+            });
+        }
+
+        function populateEmployeeFilter() {
+            const select = document.getElementById('employeeFilter');
+            select.innerHTML = '<option value="">👤 Все сотрудники</option>';
+            
+            const notAssignedOption = document.createElement('option');
+            notAssignedOption.value = 'NOT_ASSIGNED';
+            notAssignedOption.textContent = '❌ Не назначены';
+            select.appendChild(notAssignedOption);
+            
+            EMPLOYEES.forEach(emp => {
+                const option = document.createElement('option');
+                option.value = emp;
+                option.textContent = emp;
+                select.appendChild(option);
+            });
+        }
+
+        async function initializeUsers() {
+            const users = await getFromStorage('users');
+            if (!users) {
+                const defaultUsers = [
+                    { email: ADMIN_EMAIL, password: ADMIN_PASSWORD, isAdmin: true }
+                ];
+                await setToStorage('users', defaultUsers);
+            }
+        }
+
+        // ИСПРАВЛЕНО: Единая функция для отправки в Telegram
+        async function sendToTelegram(orderId, rowId) {
+            if (!TELEGRAM_BOT_TOKEN) {
+                alert('❌ ОШИБКА: Неправильный Telegram Bot Token!');
+                return;
+            }
+            
+            if (!telegramChatId) {
+                telegramChatId = prompt('Введите ID чата Telegram (сохранится для будущих отправок):');
+                if (!telegramChatId) {
+                    showNotification('❌ Отменено: не указан ID чата', '#e74c3c');
+                    return;
+                }
+                localStorage.setItem('telegram_chat_id', telegramChatId);
+            }
+
+            const order = orders.find(o => o.id == orderId);
+            if (!order) {
+                showNotification('❌ Рейс не найден', '#e74c3c');
+                return;
+            }
+            
+            const row = order.data.find(r => r.rowId === rowId);
+            if (!row) {
+                showNotification('❌ Запись не найдена', '#e74c3c');
+                return;
+            }
+
+            const sumDollar = parseFloat(row.data[11]) || 0;
+            const yulKira = parseFloat(row.data[12]) || 0;
+            const som = calculateSom(sumDollar, yulKira);
+            
+            const message = `📦 Информация о грузе
+
+🏷️ Рейс: ${formatFlightName(order.fileName)}
+👤 ФИО: ${row.data[1] || ''}
+📞 Телефон: ${row.data[4] || ''}
+📍 Город: ${row.data[2] || ''}
+📦 Наименование: ${row.data[5] || ''}
+📊 Место: ${row.data[6] || ''}
+⚖️ КГ: ${row.data[9] || ''}
+💰 Цена: ${row.data[10] || ''} $
+💵 Сумма: ${sumDollar.toFixed(2)} $
+🚛 Йул кира: ${yulKira.toFixed(2)} $
+🇰🇬 Сом: ${som.toLocaleString()} с
+👷 Сотрудник: ${row.employee || 'Не назначен'}
+✅ Статус: ${row.status === 'оплачено' ? 'Оплачено' : 'Не оплачено'}`;
+
+            try {
+                showNotification('📤 Отправка в Telegram...', '#0088cc');
+                
+                const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        chat_id: telegramChatId,
+                        text: message,
+                        parse_mode: 'HTML'
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                
+                const result = await response.json();
+                if (result.ok) {
+                    showNotification('✅ Отправлено в Telegram', '#27ae60');
+                } else {
+                    showNotification(`❌ Ошибка Telegram: ${result.description || 'Неизвестная ошибка'}`, '#e74c3c');
+                }
+            } catch (error) {
+                console.error('Ошибка отправки в Telegram:', error);
+                
+                if (error.message.includes('Failed to fetch')) {
+                    showNotification('❌ Ошибка сети. Проверьте интернет-соединение.', '#e74c3c');
+                } else if (error.message.includes('404') || error.message.includes('Not Found')) {
+                    showNotification('❌ Неверный токен бота или ID чата', '#e74c3c');
+                } else if (error.message.includes('400')) {
+                    showNotification('❌ Неверный формат запроса. Проверьте ID чата.', '#e74c3c');
+                } else {
+                    showNotification('❌ Ошибка отправки: ' + error.message, '#e74c3c');
+                }
+            }
+        }
+
+        async function cleanupDuplicates() {
+            if (!confirm('Вы уверены? Это удалит все дубликаты рейсов из базы данных.')) {
+                return;
+            }
+            
+            try {
+                const snapshot = await db.collection('orders').get();
+                
+                const ordersByKey = new Map();
+                const duplicatesToDelete = [];
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const key = `${data.fileName}_${data.userEmail}`;
+                    
+                    if (ordersByKey.has(key)) {
+                        const existing = ordersByKey.get(key);
+                        const existingDate = new Date(existing.data.uploadDate || 0);
+                        const currentDate = new Date(data.uploadDate || 0);
+                        const existingDataCount = existing.data.data ? existing.data.data.length : 0;
+                        const currentDataCount = data.data ? data.data.length : 0;
+                        
+                        if (currentDataCount > existingDataCount || 
+                            (currentDataCount === existingDataCount && currentDate > existingDate)) {
+                            duplicatesToDelete.push(existing.id);
+                            ordersByKey.set(key, { id: doc.id, data });
+                        } else {
+                            duplicatesToDelete.push(doc.id);
+                        }
+                    } else {
+                        ordersByKey.set(key, { id: doc.id, data });
+                    }
+                });
+                
+                if (duplicatesToDelete.length > 0) {
+                    const batch = db.batch();
+                    duplicatesToDelete.forEach(id => {
+                        batch.delete(db.collection('orders').doc(id));
+                    });
+                    await batch.commit();
+                    alert(`✅ Удалено ${duplicatesToDelete.length} дубликатов. Обновите страницу.`);
+                    await loadUserOrders();
+                } else {
+                    alert('✅ Дубликаты не найдены.');
+                }
+            } catch (error) {
+                console.error('Ошибка при очистке дубликатов:', error);
+                alert('❌ Ошибка при очистке дубликатов.');
+            }
+        }
+
+        function showLoginPage() {
+            document.getElementById('loginPage').classList.remove('hidden');
+            document.getElementById('mainPage').classList.add('hidden');
+            showLoginForm();
+        }
+
+        function showLoginForm() {
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('authTitle').textContent = 'Вход в систему';
+            document.getElementById('loginError').textContent = '';
+        }
+
+        function showRegisterForm() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.remove('hidden');
+            document.getElementById('authTitle').textContent = 'Регистрация';
+            document.getElementById('loginError').textContent = '';
+        }
+
+        async function showMainPage() {
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('mainPage').classList.remove('hidden');
+            document.getElementById('userEmail').textContent = currentUser.email;
+            
+            orders = [];
+            
+            const users = await getFromStorage('users') || [];
+            const user = users.find(u => u.email === currentUser.email);
+            
+            const adminTabBtn = document.getElementById('adminTabBtn');
+            if (user && user.isAdmin) {
+                adminTabBtn.classList.remove('hidden');
+                document.getElementById('kgzRateInput').value = getKgzRate();
+            } else {
+                adminTabBtn.classList.add('hidden');
+            }
+            
+            await loadUserOrders();
+        }
+
+        async function register() {
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirm = document.getElementById('registerPasswordConfirm').value;
+            const errorDiv = document.getElementById('loginError');
+
+            if (password !== confirm) {
+                errorDiv.textContent = "❌ Пароли не совпадают!";
+                return;
+            }
+
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+
+                const users = await getFromStorage('users') || [];
+                users.push({
+                    email: email,
+                    password: password,
+                    isAdmin: false
+                });
+                await setToStorage('users', users);
+
+                showNotification("✅ Регистрация успешна!", "#27ae60");
+                showLoginForm();
+            } catch (error) {
+                errorDiv.textContent = "❌ Ошибка: " + error.message;
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorDiv = document.getElementById('loginError');
+
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+            } catch (error) {
+                errorDiv.textContent = "❌ Неверный email или пароль";
+            }
+        }
+
+        async function syncUsers() {
+            try {
+                const users = await getFromStorage('users') || [];
+                return users;
+            } catch (error) {
+                console.error('Ошибка синхронизации:', error);
+                return [];
+            }
+        }
+
+        function init() {
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    currentUser = user;
+                    document.getElementById('loginPage').classList.add('hidden');
+                    document.getElementById('mainPage').classList.remove('hidden');
+                    document.getElementById('userEmail').textContent = user.email;
+
+                    const rateBtn = document.getElementById('rateBtn');
+                    if (rateBtn) {
+                        rateBtn.textContent = `💱 ${getKgzRate()} сом`;
+                    }
+
+                    if (user.email === ADMIN_EMAIL) {
+                        const adminBtn = document.getElementById('adminTabBtn');
+                        if (adminBtn) adminBtn.classList.remove('hidden');
+                    }
+
+                    await loadUserOrders();
+                    
+                } else {
+                    document.getElementById('loginPage').classList.remove('hidden');
+                    document.getElementById('mainPage').classList.add('hidden');
+                }
+            });
+
+            populateEmployeeFilter();
+        }
+
+        function logout() {
+            auth.signOut();
+            orders = [];
+        }
+
+        async function loadUserOrders() {
+            if (!currentUser) return;
+
+            try {
+                const snapshot = await db.collection('orders')
+                    .where('userEmail', '==', currentUser.email)
+                    .get();
+                
+                orders = [];
+                snapshot.forEach(doc => {
+                    orders.push({ id: doc.id, ...doc.data() });
+                });
+                
+                sortOrdersByFlightNumber();
+                renderAll();
+                
+            } catch (error) {
+                console.error('Ошибка загрузки данных из Firebase:', error);
+                showNotification("❌ Ошибка при получении данных", "#e74c3c");
+            }
+        }
+
+        // ИСПРАВЛЕНО: Предотвращение race condition при сохранении
+        async function saveOrder(order) {
+            if (isSavingOrder) {
+                saveQueue.push(order);
+                return false;
+            }
+            
+            isSavingOrder = true;
+            
+            try {
+                const cleanedOrder = cleanData(order);
+                cleanedOrder.lastModified = Date.now();
+
+                const orderId = order.id || db.collection('orders').doc().id;
+                cleanedOrder.id = orderId;
+
+                const idx = orders.findIndex(o => o.id === orderId);
+                if (idx >= 0) {
+                    orders[idx] = cleanedOrder;
+                } else {
+                    orders.push(cleanedOrder);
+                }
+
+                await db.collection('orders').doc(orderId).set(cleanedOrder);
+                
+                updateOrderInUI(cleanedOrder);
+                
+                return true;
+
+            } catch (error) {
+                console.error("Save error:", error);
+                return false;
+            } finally {
+                isSavingOrder = false;
+                
+                if (saveQueue.length > 0) {
+                    const nextOrder = saveQueue.shift();
+                    setTimeout(() => saveOrder(nextOrder), 100);
+                }
+            }
+        }
+
+        function updateOrderInUI(order) {
+            const cards = document.querySelectorAll('.order-card');
+            cards.forEach(card => {
+                if (card.dataset.orderId === order.id) {
+                    updateCardContent(card, order);
+                }
+            });
+            
+            if (currentTab === 'database') {
+                updateRowsInDatabase(order);
+            }
+        }
+
+        function updateCardContent(cardElement, order) {
+            const dataRows = order.data.filter((r, i) => i > 0);
+            const paidCount = dataRows.filter(r => r.status === 'оплачено').length;
+            const unpaidCount = dataRows.length - paidCount;
+            
+            const title = cardElement.querySelector('.order-title');
+            const paidInfo = cardElement.querySelector('.order-info:nth-child(5)');
+            const unpaidInfo = cardElement.querySelector('.order-info:nth-child(6)');
+            
+            if (title) title.textContent = formatFlightName(order.fileName);
+            if (paidInfo) paidInfo.textContent = `✅ ${paidCount}`;
+            if (unpaidInfo) unpaidInfo.textContent = `❌ ${unpaidCount}`;
+        }
+
+        async function deleteOrderFromDB(orderId) {
+            try {
+                await db.collection('orders').doc(orderId).delete();
+                return true;
+            } catch (error) {
+                console.error('Delete error:', error);
+                return false;
+            }
+        }
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const modal = document.getElementById('modal');
+        const modalClose = document.getElementById('modalClose');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFiles);
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.background = '#667eea';
+            uploadArea.style.color = 'white';
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.background = '#f8f9fa';
+            uploadArea.style.color = '';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.background = '#f8f9fa';
+            uploadArea.style.color = '';
+            handleFiles({ target: { files: e.dataTransfer.files } });
+        });
+
+        modalClose.addEventListener('click', () => modal.classList.remove('active'));
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.classList.remove('active');
+        });
+
+        async function handleFiles(e) {
+            const files = Array.from(e.target.files);
+            
+            for (const file of files) {
+                try {
+                    const existingOrder = orders.find(o => o.fileName === file.name && o.userEmail === currentUser.email);
+                    
+                    let savedStatuses = new Map();
+                    if (existingOrder) {
+                        existingOrder.data.forEach((row, idx) => {
+                            if (idx > 0 && row.data) {
+                                const fio = (row.data[1] || '').trim();
+                                const phone = (row.data[4] || '').trim();
+                                const key = fio + '|' + phone;
+                                if (fio) {
+                                    savedStatuses.set(key, {
+                                        status: row.status || 'не оплачено',
+                                        paymentDate: row.paymentDate || null,
+                                        employee: row.employee || ''
+                                    });
+                                }
+                            }
+                        });
+                        
+                        if (!confirm(`Файл "${file.name}" уже загружен. Обновить данные?\n\n✅ Статусы оплаты и сотрудники будут сохранены!`)) {
+                            continue;
+                        }
+                        
+                        await deleteOrderFromDB(existingOrder.id);
+                        orders = orders.filter(o => o.id !== existingOrder.id);
+                    }
+                    
+                    const data = await readFileAsArrayBuffer(file);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
+
+                    const rowsWithStatus = jsonData.map((row, index) => {
+                        if (index === 0) {
+                            return { data: row };
+                        } else {
+                            const fio = (row[1] || '').trim();
+                            const phone = (row[4] || '').trim();
+                            const key = fio + '|' + phone;
+                            const savedData = savedStatuses.get(key);
+                            
+                            if (savedData) {
+                                return {
+                                    data: row,
+                                    status: savedData.status,
+                                    paymentDate: savedData.paymentDate,
+                                    employee: savedData.employee,
+                                    rowId: index
+                                };
+                            } else {
+                                return {
+                                    data: row,
+                                    status: 'не оплачено',
+                                    paymentDate: null,
+                                    employee: '',
+                                    rowId: index
+                                };
+                            }
+                        }
+                    });
+
+                    const order = {
+                        fileName: file.name,
+                        data: rowsWithStatus.map(row => ({
+                            ...row,
+                            data: row.data ? row.data.map(cell => cell !== undefined ? cell : '') : []
+                        })),
+                        uploadDate: new Date().toLocaleDateString('ru-RU'),
+                        userEmail: currentUser.email
+                    };
+
+                    await saveOrder(order);
+                    
+                } catch (error) {
+                    alert('Ошибка при чтении файла: ' + file.name);
+                }
+            }
+            
+            await loadUserOrders();
+            
+            fileInput.value = '';
+            sortOrdersByFlightNumber();
+            renderAll();
+        }
+
+        function formatFlightName(fileName) {
+            if (!fileName) return '';
+            let name = fileName.replace(/\.(xlsx|xls|csv)$/i, '');
+            name = name.replace(/^[Ff]-?/g, '');
+            return name;
+        }
+
+        function readFileAsArrayBuffer(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(new Uint8Array(e.target.result));
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        async function deleteOrder(orderId, event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            
+            if (confirm('Вы уверены, что хотите удалить этот рейс?')) {
+                await deleteOrderFromDB(orderId);
+                orders = orders.filter(o => o.id !== orderId);
+                renderAll();
+            }
+        }
+
+        function findPriceColumn(headers) {
+            if (!headers || !headers.length) return -1;
+            for (let i = 0; i < headers.length; i++) {
+                const headerStr = String(headers[i]).toLowerCase();
+                if (headerStr.includes('цена') || headerStr.includes('price') || headerStr.includes('0.')) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        function isHeaderRow(row, headers) {
+            if (!row.data || row.data.length === 0) return false;
+            
+            for (let i = 0; i < Math.min(3, row.data.length); i++) {
+                const cellValue = String(row.data[i] || '').toLowerCase().trim();
+                const headerValue = String(headers[i] || '').toLowerCase().trim();
+                
+                if (cellValue === headerValue || 
+                    cellValue === '№' || 
+                    cellValue === 'фио' || 
+                    cellValue === 'жами') {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // ИСПРАВЛЕНО: Функция конвертации даты из YYYY-MM-DD в ДД.ММ.ГГГГ
+        function convertDateInputToFormat(dateStr) {
+            if (!dateStr) return '';
+            if (dateStr.includes('-')) {
+                const parts = dateStr.split('-');
+                if (parts.length === 3) {
+                    return `${parts[2]}.${parts[1]}.${parts[0]}`;
+                }
+            }
+            return dateStr;
+        }
+
+        // ИСПРАВЛЕНО: Универсальная функция парсинга даты
+        function parseDate(dateStr) {
+            if (!dateStr) return null;
+            
+            // Если дата в формате дд.мм.гггг
+            if (dateStr.includes('.')) {
+                const parts = dateStr.split('.');
+                if (parts.length === 3) {
+                    return new Date(parts[2], parts[1] - 1, parts[0]);
+                }
+            }
+            // Если дата в формате гггг-мм-дд (из input[type="date"])
+            else if (dateStr.includes('-')) {
+                return new Date(dateStr);
+            }
+            
+            return null;
+        }
+
+        // ИСПРАВЛЕНО: Функция проверки даты в диапазоне
+        function isDateInRange(paymentDate) {
+            if (!dateFilterFrom && !dateFilterTo) {
+                return true;
+            }
+            
+            if (!paymentDate || paymentDate === '-') {
+                return false;
+            }
+            
+            try {
+                let dateStr = paymentDate;
+                
+                if (paymentDate.includes(' ')) {
+                    dateStr = paymentDate.split(' ')[0];
+                }
+                
+                const rowDate = parseDate(dateStr);
+                if (!rowDate || isNaN(rowDate.getTime())) {
+                    return false;
+                }
+                
+                let fromDate = parseDate(dateFilterFrom);
+                let toDate = parseDate(dateFilterTo);
+                
+                if (toDate) {
+                    toDate.setHours(23, 59, 59, 999);
+                }
+                
+                const result = (!fromDate || rowDate >= fromDate) && 
+                              (!toDate || rowDate <= toDate);
+                
+                return result;
+                
+            } catch (error) {
+                return false;
+            }
+        }
+
+        // ИСПРАВЛЕНО: Фильтрация по дате с конвертацией формата
+        function filterByDate() {
+            const fromInput = document.getElementById('dateFilterFrom');
+            const toInput = document.getElementById('dateFilterTo');
+            
+            if (fromInput) dateFilterFrom = convertDateInputToFormat(fromInput.value);
+            if (toInput) dateFilterTo = convertDateInputToFormat(toInput.value);
+            
+            renderOrderCards();
+            renderDatabase();
+            calculateTotals();
+            calculateMainTotals();
+        }
+
+        function clearDateFilter() {
+            const fromInput = document.getElementById('dateFilterFrom');
+            const toInput = document.getElementById('dateFilterTo');
+            
+            fromInput.value = '';
+            toInput.value = '';
+            dateFilterFrom = '';
+            dateFilterTo = '';
+            
+            renderAll();
+            showNotification('🗑️ Фильтр даты очищен', '#3498db');
+        }
+
+        function calculateTotals() {
+            let totalAll = 0;
+            let totalPaid = 0;
+            let totalUnpaid = 0;
+            let totalSom = 0;
+            let totalSomPaid = 0;
+            let totalSomUnpaid = 0;
+            let employeeDebts = {};
+            
+            orders.forEach(order => {
+                const headers = order.data[0] || { data: [] };
+                const headerData = headers.data || headers;
+                
+                order.data.forEach((row, idx) => {
+                    if (idx > 0 && row.data && row.data.some(cell => cell && String(cell).trim() !== '')) {
+                        if (isHeaderRow(row, headerData)) return;
+                        
+                        if (currentFilter === 'all' || 
+                            (currentFilter === 'paid' && row.status === 'оплачено') || 
+                            (currentFilter === 'unpaid' && row.status === 'не оплачено')) {
+                            
+                            const passesEmployeeFilter = !employeeFilter || 
+                                (employeeFilter === 'NOT_ASSIGNED' && (!row.employee || row.employee === '')) ||
+                                (employeeFilter !== 'NOT_ASSIGNED' && row.employee === employeeFilter);
+                            
+                            if (passesEmployeeFilter && isDateInRange(row.paymentDate)) {
+                                const sumDollar = parseFloat(row.data[11]) || 0;
+                                const yulKira = parseFloat(row.data[12]) || 0;
+                                const totalSum = sumDollar + yulKira;
+                                const som = calculateSom(sumDollar, yulKira);
+                                
+                                totalAll += totalSum;
+                                totalSom += som;
+                                
+                                if (row.status === 'оплачено') {
+                                    totalPaid += totalSum;
+                                    totalSomPaid += som;
+                                } else {
+                                    totalUnpaid += totalSum;
+                                    totalSomUnpaid += som;
+                                    
+                                    if (row.employee) {
+                                        if (!employeeDebts[row.employee]) {
+                                            employeeDebts[row.employee] = 0;
+                                        }
+                                        employeeDebts[row.employee] += totalSum;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+            
+            displayTotals(totalAll, totalPaid, totalUnpaid, totalSom, totalSomPaid, totalSomUnpaid, employeeDebts);
+        }
+
+        function calculateMainTotals() {
+            let totalAll = 0;
+            let totalPaid = 0;
+            let totalUnpaid = 0;
+            let totalSom = 0;
+            let totalSomPaid = 0;
+            let totalSomUnpaid = 0;
+            
+            orders.forEach(order => {
+                const headers = order.data[0] || { data: [] };
+                const headerData = headers.data || headers;
+                
+                order.data.forEach((row, idx) => {
+                    if (idx > 0 && row.data && row.data.some(cell => cell && String(cell).trim() !== '')) {
+                        if (isHeaderRow(row, headerData)) return;
+                        
+                        if (mainFilter === 'all' || 
+                            (mainFilter === 'paid' && row.status === 'оплачено') || 
+                            (mainFilter === 'unpaid' && row.status === 'не оплачено')) {
+                            
+                            const sumDollar = parseFloat(row.data[11]) || 0;
+                            const yulKira = parseFloat(row.data[12]) || 0;
+                            const totalSum = sumDollar + yulKira;
+                            const som = calculateSom(sumDollar, yulKira);
+                            
+                            totalAll += totalSum;
+                            totalSom += som;
+                            
+                            if (row.status === 'оплачено') {
+                                totalPaid += totalSum;
+                                totalSomPaid += som;
+                            } else {
+                                totalUnpaid += totalSum;
+                                totalSomUnpaid += som;
+                            }
+                        }
+                    }
+                });
+            });
+            
+            displayMainTotals(totalAll, totalPaid, totalUnpaid, totalSom, totalSomPaid, totalSomUnpaid);
+        }
+
+        function calculateModalTotals() {
+            if (!currentOrder) return { totalAll: 0, totalPaid: 0, totalUnpaid: 0, totalSom: 0, totalSomPaid: 0, totalSomUnpaid: 0 };
+            
+            let totalAll = 0;
+            let totalPaid = 0;
+            let totalUnpaid = 0;
+            let totalSom = 0;
+            let totalSomPaid = 0;
+            let totalSomUnpaid = 0;
+            
+            const headers = currentOrder.data[0] || { data: [] };
+            const headerData = headers.data || headers;
+            
+            currentOrder.data.forEach((row, idx) => {
+                if (idx > 0 && row.data && row.data.some(cell => cell && String(cell).trim() !== '')) {
+                    if (isHeaderRow(row, headerData)) return;
+                    
+                    if (modalFilter === 'all' || 
+                        (modalFilter === 'paid' && row.status === 'оплачено') || 
+                        (modalFilter === 'unpaid' && row.status === 'не оплачено')) {
+                        
+                        const sumDollar = parseFloat(row.data[11]) || 0;
+                        const yulKira = parseFloat(row.data[12]) || 0;
+                        const totalSum = sumDollar + yulKira;
+                        const som = calculateSom(sumDollar, yulKira);
+                        
+                        totalAll += totalSum;
+                        totalSom += som;
+                        
+                        if (row.status === 'оплачено') {
+                            totalPaid += totalSum;
+                            totalSomPaid += som;
+                        } else {
+                            totalUnpaid += totalSum;
+                            totalSomUnpaid += som;
+                        }
+                    }
+                }
+            });
+            
+            return { totalAll, totalPaid, totalUnpaid, totalSom, totalSomPaid, totalSomUnpaid };
+        }
+
+        // ИСПРАВЛЕНО: Удален вызов debugData()
+        function renderAll() {
+            renderOrderCards();
+            renderDatabase();
+            calculateTotals();
+            calculateMainTotals();
+        }
+
+        function renderOrderCards() {
+            const grid = document.getElementById('ordersGrid');
+            grid.innerHTML = '';
+
+            const uniqueOrders = new Map();
+            
+            orders.forEach(order => {
+                const key = order.id || `${order.fileName}_${order.uploadDate}_${order.userEmail}`;
+                
+                if (!uniqueOrders.has(key)) {
+                    uniqueOrders.set(key, order);
+                }
+            });
+            
+            uniqueOrders.forEach(order => {
+                const dataRows = order.data.filter((r, i) => i > 0);
+                const paidCount = dataRows.filter(r => r.status === 'оплачено').length;
+                const unpaidCount = dataRows.length - paidCount;
+                
+                if (mainFilter === 'paid' && paidCount === 0) return;
+                if (mainFilter === 'unpaid' && unpaidCount === 0) return;
+                
+                const card = document.createElement('div');
+                card.className = 'order-card';
+                card.setAttribute('data-order-id', order.id);
+                card.innerHTML = `
+                    <div class="order-card-content" onclick="showOrderDetails('${order.id}')">
+                        <div class="order-icon">📦</div>
+                        <div class="order-title">${formatFlightName(order.fileName)}</div>
+                        <div class="order-info">📅 ${order.uploadDate}</div>
+                        <div class="order-info">📊 ${dataRows.length} записей</div>
+                        <div class="order-info" style="color: #27ae60; font-weight: 600;">✅ ${paidCount}</div>
+                        <div class="order-info" style="color: #e74c3c; font-weight: 600;">❌ ${unpaidCount}</div>
+                    </div>
+                    <div class="order-actions">
+                        <button class="btn btn-delete" onclick="deleteOrder('${order.id}', event)">🗑️ Удалить</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function setMainFilter(filter) {
+            mainFilter = filter;
+            const btns = document.querySelectorAll('.filters .filter-btn');
+            btns.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderOrderCards();
+            calculateMainTotals();
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            const btns = document.querySelectorAll('#databaseTab .filter-btn');
+            btns.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderAll();
+        }
+
+        function setModalFilter(filter) {
+            modalFilter = filter;
+            const btns = document.querySelectorAll('#modal .filter-btn');
+            btns.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            if (currentOrder) {
+                showOrderDetails(currentOrder.id);
+            }
+        }
+
+        function filterByEmployee() {
+            employeeFilter = document.getElementById('employeeFilter').value;
+            renderAll();
+        }
+
+        function printInvoice(orderId, rowId) {
+            const order = orders.find(o => o.id == orderId);
+            if (!order) return;
+            
+            const row = order.data.find(r => r.rowId === rowId);
+            if (!row) return;
+            
+            const sumDollar = parseFloat(row.data[11]) || 0;
+            const yulKira = parseFloat(row.data[12]) || 0;
+            const totalSom = calculateSom(sumDollar, yulKira);
+            
+            const invoiceHTML = `
+                <div class="print-invoice">
+                    <div class="print-invoice-header">
+                        Наименование Клиента: ${row.data[1] || ''}
+                    </div>
+                    <table class="print-invoice-table">
+                        <thead>
+                            <tr>
+                                <th>Рейс</th>
+                                <th>Телефон</th>
+                                <th>Наименование</th>
+                                <th>Место</th>
+                                <th>Упак</th>
+                                <th>КГ</th>
+                                <th>Цена</th>
+                                <th>Сумма$</th>
+                                <th>Йул кира$</th>
+                                <th>Сом</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                               <td>${formatFlightName(order.fileName)}</td>
+                                <td>${row.data[4] || ''}</td>
+                                <td>${row.data[5] || ''}</td>
+                                <td>${row.data[6] || ''}</td>
+                                <td>${row.data[7] || ''}</td>
+                                <td>${row.data[9] || ''}</td>
+                                <td>${row.data[10] || ''}</td>
+                                <td>${sumDollar.toFixed(2)}</td>
+                                <td>${yulKira.toFixed(2)}</td>
+                                <td>${totalSom.toLocaleString()}</td>
+                            </tr>
+                            <tr><td colspan="10" style="height: 35px;"></td></tr>
+                            <tr><td colspan="10" style="height: 35px;"></td></tr>
+                            <tr><td colspan="10" style="height: 35px;"></td></tr>
+                        </tbody>
+                    </table>
+                    <div class="print-invoice-footer">
+                        <div>Подпись Получателя денег: _________________</div>
+                        <div>Подпись Получателя Товара: _________________</div>
+                    </div>
+                </div>
+            `;
+            
+            const printArea = document.getElementById('invoicePrintArea');
+            printArea.innerHTML = invoiceHTML + invoiceHTML;
+            
+            window.print();
+            
+            setTimeout(() => {
+                printArea.innerHTML = '';
+            }, 1000);
+        }
+
+        // ИСПРАВЛЕНО: Единая функция prepareRowForExport для всех экспортов
+        function prepareRowForExport(row, order) {
+            const data = row.data || [];
+            
+            let name = data[5] || '';
+            let place = data[6] || '';
+            
+            if (name.includes('Место') || name.includes('  ')) {
+                const parts = name.split('  ');
+                if (parts.length > 1) {
+                    name = parts[0] || '';
+                    place = parts[1] || parts.slice(1).join(' ') || '';
+                }
+            }
+            
+            const sht = '';
+            const kg = data[9] || '';
+            const price = data[10] || '';
+            let sumDollar = parseFloat(data[11]) || 0;
+            const yulKira = parseFloat(data[12]) || 0;
+            
+            if (!sumDollar && kg && price) {
+                sumDollar = (parseFloat(kg) || 0) * (parseFloat(price) || 0);
+            }
+            
+            const som = calculateSom(sumDollar, yulKira);
+            
+            return [
+                order ? formatFlightName(order.fileName) : '',
+                data[0] || '',
+                data[1] || '',
+                data[2] || '',
+                data[3] || '',
+                data[4] || '',
+                name,
+                place,
+                data[7] || '',
+                sht,
+                kg,
+                price,
+                sumDollar.toFixed(2),
+                yulKira.toFixed(2),
+                som.toLocaleString(),
+                row.status || 'не оплачено',
+                row.employee || '',
+                row.paymentDate || '-'
+            ];
+        }
+
+        // ИСПРАВЛЕНО: downloadAllOrders использует единую функцию prepareRowForExport
+        window.downloadAllOrders = function() {
+            if (!orders || orders.length === 0) {
+                alert('Нет данных для экспорта');
+                return;
+            }
+
+            const exportData = [];
+            
+            const headers = [
+                'Рейс', '№', 'ФИО', 'Город', 'г/п', 'Телефон',
+                'Наименование', 'Место', 'Упак', 'шт', 'кг',
+                'Цена$', 'Сумма$', 'Йул кира$', 'Сом',
+                'Статус', 'Сотрудник', 'Дата оплаты'
+            ];
+            exportData.push(headers);
+
+            let totalSumDollar = 0;
+            let totalYulKira = 0;
+            let totalSom = 0;
+            let totalRecords = 0;
+
+            orders.forEach(order => {
+                const dataRows = order.data.filter((r, i) => i > 0);
+                const flightName = formatFlightName(order.fileName);
+
+                dataRows.forEach(row => {
+                    if (!row.data || !row.data.some(cell => cell && String(cell).trim() !== '')) return;
+
+                    if (mainFilter === 'paid' && row.status !== 'оплачено') return;
+                    if (mainFilter === 'unpaid' && row.status === 'оплачено') return;
+
+                    const exportRow = prepareRowForExport(row, order);
+                    
+                    // Обновляем первый элемент (рейс)
+                    exportRow[0] = flightName;
+                    
+                    const sumDollar = parseFloat(row.data[11]) || 0;
+                    const yulKira = parseFloat(row.data[12]) || 0;
+                    
+                    totalSumDollar += sumDollar;
+                    totalYulKira += yulKira;
+                    totalSom += calculateSom(sumDollar, yulKira);
+                    totalRecords++;
+                    
+                    exportData.push(exportRow);
+                });
+            });
+
+            const totalRow = new Array(headers.length).fill('');
+            totalRow[0] = 'ИТОГО:';
+            totalRow[12] = totalSumDollar.toFixed(2);
+            totalRow[13] = totalYulKira.toFixed(2);
+            totalRow[14] = totalSom.toLocaleString();
+            totalRow[15] = `Всего записей: ${totalRecords}`;
+            exportData.push(totalRow);
+
+            try {
+                const ws = XLSX.utils.aoa_to_sheet(exportData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Рейсы');
+                
+                const date = new Date().toLocaleDateString('ru-RU').replace(/\./g, '-');
+                const filterName = mainFilter === 'all' ? 'все' : mainFilter === 'paid' ? 'оплаченные' : 'неоплаченные';
+                const fileName = `Рейсы_${filterName}_${date}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                
+                showNotification(`✅ Скачан: ${fileName} (${totalRecords} записей)`, '#27ae60');
+            } catch (error) {
+                console.error('Ошибка при экспорте:', error);
+                alert('❌ Ошибка при создании файла Excel');
+            }
+        }
+
+        // ИСПРАВЛЕНО: downloadDatabase использует единую функцию prepareRowForExport
+        window.downloadDatabase = function() {
+            if (orders.length === 0) {
+                alert('Нет данных для экспорта');
+                return;
+            }
+
+            const exportData = [];
+
+            const headers = [
+                'Рейс', '№', 'ФИО', 'Город', 'г/п', 'Телефон',
+                'Наименование', 'Место', 'Упак', 'шт', 'кг',
+                'Цена$', 'Сумма$', 'Йул кира$', 'Сом',
+                'Сотрудник', 'Статус', 'Дата оплаты'
+            ];
+            exportData.push(headers);
+
+            let totalSumDollar = 0;
+            let totalYulKira = 0;
+            let totalSom = 0;
+            let totalRecords = 0;
+
+            orders.forEach(order => {
+                const dataRows = order.data.filter((r, i) => i > 0);
+                const orderHeaders = order.data[0] || { data: [] };
+                const headerData = orderHeaders.data || orderHeaders;
+
+                dataRows.forEach(row => {
+                    if (isHeaderRow(row, headerData)) return;
+
+                    if (!row.data || !row.data.some(cell => cell && String(cell).trim() !== '')) return;
+
+                    if (currentFilter === 'paid' && row.status !== 'оплачено') return;
+                    if (currentFilter === 'unpaid' && row.status !== 'не оплачено') return;
+                    
+                    if (employeeFilter) {
+                        if (employeeFilter === 'NOT_ASSIGNED') {
+                            if (row.employee && row.employee !== '') return;
+                        } else {
+                            if (row.employee !== employeeFilter) return;
+                        }
+                    }
+                    
+                    if (!isDateInRange(row.paymentDate)) return;
+                    
+                    const searchValue = document.getElementById('dbSearchInput')?.value.toLowerCase() || '';
+                    if (searchValue) {
+                        let found = false;
+                        for (let i = 0; i < row.data.length; i++) {
+                            if (String(row.data[i] || '').toLowerCase().includes(searchValue)) {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found) return;
+                    }
+
+                    const exportRow = prepareRowForExport(row, order);
+                    
+                    const sumDollar = parseFloat(row.data[11]) || 0;
+                    const yulKira = parseFloat(row.data[12]) || 0;
+                    
+                    totalSumDollar += sumDollar;
+                    totalYulKira += yulKira;
+                    totalSom += calculateSom(sumDollar, yulKira);
+                    totalRecords++;
+
+                    exportData.push(exportRow);
+                });
+            });
+
+            const totalRow = [
+                'ИТОГО:', '', '', '', '', '', '', '', '', '', '', '',
+                totalSumDollar.toFixed(2),
+                totalYulKira.toFixed(2),
+                totalSom.toLocaleString(),
+                `Всего записей: ${totalRecords}`,
+                '', ''
+            ];
+            exportData.push(totalRow);
+
+            const ws = XLSX.utils.aoa_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'База данных');
+            
+            const date = new Date().toLocaleDateString('ru-RU').replace(/\./g, '-');
+            const filterName = currentFilter === 'all' ? 'все' : currentFilter === 'paid' ? 'оплаченные' : 'неоплаченные';
+            const fileName = `База_данных_${filterName}_${date}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+            
+            showNotification(`✅ Скачан: ${fileName} (${totalRecords} записей)`, '#27ae60');
+        }
+
+        // ИСПРАВЛЕНО: downloadCurrentOrder использует единую функцию prepareRowForExport
+        window.downloadCurrentOrder = function(type) {
+            if (!currentOrder) return;
+            
+            const exportData = [];
+            const headers = currentOrder.data[0] || { data: [] };
+            const headerData = headers.data || headers;
+            
+            const excelHeaders = [
+                '№', 'ФИО', 'Город', 'г/п', 'Телефон', 'Наименование', 
+                'Место', 'Упак', 'шт', 'кг', 'Цена$', 'Сумма$', 'Йул кира$', 
+                'Сом', 'Статус', 'Сотрудник', 'Дата оплаты'
+            ];
+            exportData.push(['Рейс', ...excelHeaders]);
+            
+            let totalSumDollar = 0;
+            let totalYulKira = 0;
+            let totalRecords = 0;
+            
+            const searchValue = document.getElementById('modalSearchInput')?.value.toLowerCase() || '';
+            
+            currentOrder.data.forEach((row, index) => {
+                if (index > 0) {
+                    if (isHeaderRow(row, headerData)) return;
+                    const hasData = row.data && row.data.some(cell => cell && String(cell).trim() !== '');
+                    if (hasData) {
+                        if (type === 'unpaid' && row.status === 'не оплачено') {
+                            if (searchValue) {
+                                let found = false;
+                                for (let i = 0; i < row.data.length; i++) {
+                                    if (String(row.data[i] || '').toLowerCase().includes(searchValue)) {
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (!found) return;
+                            }
+                            
+                            const exportRow = prepareRowForExport(row, currentOrder);
+                            const sumDollar = parseFloat(row.data[11]) || 0;
+                            const yulKira = parseFloat(row.data[12]) || 0;
+                            
+                            exportData.push(exportRow);
+                            totalSumDollar += sumDollar;
+                            totalYulKira += yulKira;
+                            totalRecords++;
+                            
+                        } else if (type === 'all') {
+                            if (modalFilter === 'paid' && row.status !== 'оплачено') return;
+                            if (modalFilter === 'unpaid' && row.status === 'оплачено') return;
+                            
+                            if (searchValue) {
+                                let found = false;
+                                for (let i = 0; i < row.data.length; i++) {
+                                    if (String(row.data[i] || '').toLowerCase().includes(searchValue)) {
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (!found) return;
+                            }
+                            
+                            const exportRow = prepareRowForExport(row, currentOrder);
+                            const sumDollar = parseFloat(row.data[11]) || 0;
+                            const yulKira = parseFloat(row.data[12]) || 0;
+                            
+                            exportData.push(exportRow);
+                            totalSumDollar += sumDollar;
+                            totalYulKira += yulKira;
+                            totalRecords++;
+                        }
+                    }
+                }
+            });
+            
+            const totalRow = new Array(excelHeaders.length + 1).fill('');
+            totalRow[0] = 'ИТОГО:';
+            totalRow[12] = totalSumDollar.toFixed(2);
+            totalRow[13] = totalYulKira.toFixed(2);
+            totalRow[14] = calculateSom(totalSumDollar, totalYulKira).toLocaleString();
+            totalRow[15] = `Всего записей: ${totalRecords}`;
+            exportData.push(totalRow);
+            
+            const ws = XLSX.utils.aoa_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, type === 'unpaid' ? 'Неоплаченные' : 'Все');
+            
+            const suffix = type === 'unpaid' ? '_неоплаченные' : '_все';
+            const fileName = currentOrder.fileName.replace('.xlsx', '').replace('.xls', '') + suffix + '.xlsx';
+            XLSX.writeFile(wb, fileName);
+            
+            showNotification(`✅ Скачан: ${fileName} (${totalRecords} записей)`, '#27ae60');
+        }
+
+        window.shareFilteredData = async function(app) {
+            if (orders.length === 0) {
+                alert('Нет данных для отправки');
+                return;
+            }
+
+            let summaryText = `📊 Отчет по рейсам\n`;
+            summaryText += `📅 Дата: ${new Date().toLocaleDateString('ru-RU')}\n`;
+            summaryText += `📋 Фильтр: ${currentFilter === 'all' ? 'Все' : currentFilter === 'paid' ? 'Оплачено' : 'Не оплачено'}\n`;
+            
+            if (employeeFilter) {
+                summaryText += `👤 Сотрудник: ${employeeFilter === 'NOT_ASSIGNED' ? '❌ Не назначены' : employeeFilter}\n`;
+            }
+            
+            if (dateFilterFrom || dateFilterTo) {
+                summaryText += `📅 Период: ${dateFilterFrom || '...'} - ${dateFilterTo || '...'}\n`;
+            }
+            
+            summaryText += `\n📦 Всего рейсов: ${orders.length}\n`;
+            
+            let totalRecords = 0;
+            let paidRecords = 0;
+            let unpaidRecords = 0;
+            let totalSumDollar = 0;
+            let totalYulKira = 0;
+            
+            orders.forEach(order => {
+                const dataRows = order.data.filter((r, i) => i > 0);
+                const orderHeaders = order.data[0] || { data: [] };
+                const headerData = orderHeaders.data || orderHeaders;
+                
+                dataRows.forEach(row => {
+                    if (isHeaderRow(row, headerData)) return;
+                    if (!row.data || !row.data.some(cell => cell && String(cell).trim() !== '')) return;
+                    
+                    if (currentFilter === 'paid' && row.status !== 'оплачено') return;
+                    if (currentFilter === 'unpaid' && row.status !== 'не оплачено') return;
+                    
+                    if (employeeFilter) {
+                        if (employeeFilter === 'NOT_ASSIGNED') {
+                            if (row.employee && row.employee !== '') return;
+                        } else {
+                            if (row.employee !== employeeFilter) return;
+                        }
+                    }
+                    
+                    if (!isDateInRange(row.paymentDate)) return;
+                    
+                    totalRecords++;
+                    if (row.status === 'оплачено') paidRecords++;
+                    else unpaidRecords++;
+                    
+                    const sumDollar = parseFloat(row.data[11]) || 0;
+                    const yulKira = parseFloat(row.data[12]) || 0;
+                    totalSumDollar += sumDollar;
+                    totalYulKira += yulKira;
+                });
+            });
+            
+            summaryText += `📋 Всего записей: ${totalRecords}\n`;
+            summaryText += `✅ Оплачено: ${paidRecords}\n`;
+            summaryText += `❌ Не оплачено: ${unpaidRecords}\n`;
+            summaryText += `💰 Общая сумма: ${totalSumDollar.toFixed(2)} $\n`;
+            summaryText += `🚛 Йул кира: ${totalYulKira.toFixed(2)} $\n`;
+            summaryText += `💵 Сом: ${calculateSom(totalSumDollar, totalYulKira).toLocaleString()} с\n`;
+            
+            try {
+                const tableElement = document.getElementById('databaseTable');
+                if (!tableElement) {
+                    throw new Error('Таблица не найдена');
+                }
+                
+                const canvas = await html2canvas(tableElement, {
+                    scale: 0.5,
+                    backgroundColor: '#ffffff'
+                });
+                
+                const imageUrl = canvas.toDataURL('image/png');
+                const blob = await (await fetch(imageUrl)).blob();
+                const file = new File([blob], 'рейсы.png', { type: 'image/png' });
+                
+                if (app === 'whatsapp') {
+                    const phoneNumber = prompt('Введите номер телефона для WhatsApp (в формате 79991234567):');
+                    if (phoneNumber) {
+                        const text = encodeURIComponent(summaryText);
+                        window.open(`https://wa.me/${phoneNumber}?text=${text}`, '_blank');
+                    }
+                } else if (app === 'telegram') {
+                    if (!telegramChatId) {
+                        telegramChatId = prompt('Введите ID чата Telegram:');
+                        if (!telegramChatId) return;
+                        localStorage.setItem('telegram_chat_id', telegramChatId);
+                    }
+                    
+                    const formData = new FormData();
+                    formData.append('chat_id', telegramChatId);
+                    formData.append('photo', file);
+                    formData.append('caption', summaryText.substring(0, 1024));
+                    
+                    try {
+                        const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const result = await response.json();
+                        if (result.ok) {
+                            alert('Данные отправлены в Telegram!');
+                        } else {
+                            alert('Ошибка отправки в Telegram: ' + (result.description || 'Неизвестная ошибка'));
+                        }
+                    } catch (error) {
+                        console.error('Ошибка отправки в Telegram:', error);
+                        alert('Не удалось отправить в Telegram. Проверьте токен бота и ID чата.');
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка создания скриншота:', error);
+                if (app === 'whatsapp') {
+                    const phoneNumber = prompt('Введите номер телефона для WhatsApp:');
+                    if (phoneNumber) {
+                        window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(summaryText)}`, '_blank');
+                    }
+                } else if (app === 'telegram') {
+                    if (!telegramChatId) {
+                        telegramChatId = prompt('Введите ID чата Telegram:');
+                        if (!telegramChatId) return;
+                        localStorage.setItem('telegram_chat_id', telegramChatId);
+                    }
+                    
+                    window.open(`https://t.me/share/url?url=&text=${encodeURIComponent(summaryText)}`, '_blank');
+                }
+            }
+        }
+
+        window.shareModalData = async function(app) {
+            if (!currentOrder) {
+                alert('Нет данных для отправки');
+                return;
+            }
+
+            let summaryText = `📊 Отчет по рейсу: ${formatFlightName(currentOrder.fileName)}\n`;
+            summaryText += `📅 Дата загрузки: ${currentOrder.uploadDate}\n`;
+            summaryText += `📋 Фильтр: ${modalFilter === 'all' ? 'Все' : modalFilter === 'paid' ? 'Оплачено' : 'Не оплачено'}\n\n`;
+            
+            const totals = calculateModalTotals();
+            summaryText += `💰 Общая сумма: ${totals.totalAll.toFixed(2)} $\n`;
+            summaryText += `✅ Оплачено: ${totals.totalPaid.toFixed(2)} $\n`;
+            summaryText += `❌ Не оплачено: ${totals.totalUnpaid.toFixed(2)} $\n`;
+            summaryText += `💵 Сом: ${totals.totalSom.toLocaleString()} с\n`;
+            
+            try {
+                const tableElement = document.querySelector('#tableWrapper table');
+                if (tableElement) {
+                    const canvas = await html2canvas(tableElement, {
+                        scale: 0.5,
+                        backgroundColor: '#ffffff'
+                    });
+                    
+                    const imageUrl = canvas.toDataURL('image/png');
+                    const blob = await (await fetch(imageUrl)).blob();
+                    const file = new File([blob], `${formatFlightName(currentOrder.fileName)}.png`, { type: 'image/png' });
+                    
+                    if (app === 'whatsapp') {
+                        const phoneNumber = prompt('Введите номер телефона для WhatsApp:');
+                        if (phoneNumber) {
+                            window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(summaryText)}`, '_blank');
+                        }
+                    } else if (app === 'telegram') {
+                        if (!telegramChatId) {
+                            telegramChatId = prompt('Введите ID чата Telegram:');
+                            if (!telegramChatId) return;
+                            localStorage.setItem('telegram_chat_id', telegramChatId);
+                        }
+                        
+                        const formData = new FormData();
+                        formData.append('chat_id', telegramChatId);
+                        formData.append('photo', file);
+                        formData.append('caption', summaryText.substring(0, 1024));
+                        
+                        const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const result = await response.json();
+                        if (result.ok) {
+                            alert('Данные отправлены в Telegram!');
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка создания скриншота:', error);
+                if (app === 'whatsapp') {
+                    const phoneNumber = prompt('Введите номер телефона для WhatsApp:');
+                    if (phoneNumber) {
+                        window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(summaryText)}`, '_blank');
+                    }
+                }
+            }
+        }
+
+    // ИСПРАВЛЕНО: Оптимизированный renderDatabase с DocumentFragment и батчем 200 строк
+    // Глобальные переменные для оптимизации
+    let rowCache = new Map(); // Кеш готовых DOM строк
+    let dataCache = []; // Кеш подготовленных данных
+    let isRendering = false;
+    let renderQueue = [];
+    let currentRenderBatch = null; // Для отслеживания текущего рендеринга
+
+    // Подготовка данных один раз
+    function prepareDataCache() {
+        console.time('prepareDataCache');
+        dataCache = [];
+        rowCache.clear();
+        
+        orders.forEach(order => {
+            const dataRows = order.data.filter((r, i) => i > 0);
+            const headers = order.data[0] || { data: [] };
+            const headerData = headers.data || headers;
+            
+            dataRows.forEach(row => {
+                if (isHeaderRow(row, headerData)) return;
+                
+                const hasData = row.data && row.data.some(cell => cell && String(cell).trim() !== '');
+                if (!hasData) return;
+
+                // Быстрая проверка фильтров
+                if (currentFilter === 'paid' && row.status !== 'оплачено') return;
+                if (currentFilter === 'unpaid' && row.status !== 'не оплачено') return;
+                
+                if (employeeFilter) {
+                    if (employeeFilter === 'NOT_ASSIGNED') {
+                        if (row.employee && row.employee !== '') return;
+                    } else {
+                        if (row.employee !== employeeFilter) return;
+                    }
+                }
+                
+                if (!isDateInRange(row.paymentDate)) return;
+                
+                // Вычисляем суммы один раз
+                const sumDollar = parseFloat(row.data[11]) || 0;
+                const yulKira = parseFloat(row.data[12]) || 0;
+                const som = calculateSom(sumDollar, yulKira);
+                
+                dataCache.push({
+                    orderId: order.id,
+                    rowId: row.rowId,
+                    flightName: formatFlightName(order.fileName),
+                    data: row.data,
+                    sumDollar: sumDollar,
+                    yulKira: yulKira,
+                    som: som,
+                    employee: row.employee || '',
+                    status: row.status,
+                    paymentDate: row.paymentDate || '-',
+                    priceIdx: findPriceColumn(headerData)
+                });
+            });
+        });
+        
+        console.timeEnd('prepareDataCache');
+        return dataCache.length;
+    }
+
+    // Создание строки с кешированием
+    function createCachedRow(index, cacheItem) {
+        const cacheKey = `${cacheItem.orderId}-${cacheItem.rowId}-${index}`;
+        
+        // Возвращаем из кеша если есть
+        if (rowCache.has(cacheKey)) {
+            return rowCache.get(cacheKey).cloneNode(true);
+        }
+        
+        // Создаем новую строку
+        const tr = document.createElement('tr');
+        tr.id = `row-${cacheItem.orderId}-${cacheItem.rowId}`;
+        
+        // Генерируем HTML одним вызовом (самый быстрый способ)
+        const employeeOptions = EMPLOYEES.map(emp => 
+            `<option value="${emp}" ${cacheItem.employee === emp ? 'selected' : ''}>${emp}</option>`
+        ).join('');
+        
+        const statusClass = cacheItem.status === 'оплачено' ? 'status-paid' : 'status-unpaid';
+        const statusText = cacheItem.status === 'оплачено' ? '✅ Оплачено' : '❌ Не оплачено';
+        
+        let html = `<td style="font-weight: bold;">${cacheItem.flightName}</td>`;
+        
+        // Ячейки данных 0-12
+        for (let i = 0; i < 13; i++) {
+            const value = cacheItem.data[i] || '';
+            if (i !== cacheItem.priceIdx) {
+                html += `<td class="editable-cell" onclick="editCellDB('${cacheItem.orderId}', ${cacheItem.rowId}, ${i}, this)">${value}</td>`;
+            } else {
+                html += `<td>${value}</td>`;
+            }
+        }
+        
+        // Остальные ячейки
+        html += `
+            <td class="som-column">${cacheItem.som.toLocaleString()}</td>
+            <td style="text-align: center; cursor: pointer; background: #e3f2fd;">
+                <select onchange="updateEmployee('${cacheItem.orderId}', ${cacheItem.rowId}, this.value)" 
+                        style="width: 100%; padding: 5px; border-radius: 5px; border: 1px solid #667eea;" 
+                        class="employee-select">
+                    <option value="">Выбрать</option>
+                    ${employeeOptions}
+                </select>
+            </td>
+            <td class="status-cell ${statusClass}" onclick="toggleRowStatus('${cacheItem.orderId}', ${cacheItem.rowId}, event, 'database')">
+                ${statusText}
+            </td>
+            <td style="text-align: center;">${cacheItem.paymentDate}</td>
+            <td style="text-align: center;">
+                <button class="btn btn-print-invoice" onclick="printInvoice('${cacheItem.orderId}', ${cacheItem.rowId})">🖨️</button>
+            </td>
+            <td style="text-align: center;">
+                <button class="btn btn-telegram-row" onclick="sendToTelegram('${cacheItem.orderId}', ${cacheItem.rowId})">📤 Telegram</button>
+            </td>
+        `;
+        
+        tr.innerHTML = html;
+        
+        // Кешируем строку
+        rowCache.set(cacheKey, tr.cloneNode(true));
+        
+        return tr;
+    }
+
+    // Оптимизированный рендеринг с batch обработкой (200 строк за раз)
+    function renderDatabase() {
+        if (isRendering) {
+            if (!renderQueue.includes('renderDatabase')) {
+                renderQueue.push('renderDatabase');
+            }
+            return;
+        }
+        
+        // Отменяем предыдущий рендеринг если он еще выполняется
+        if (currentRenderBatch) {
+            clearTimeout(currentRenderBatch);
+            currentRenderBatch = null;
+        }
+        
+        isRendering = true;
+        console.time('renderDatabase');
+        
+        const thead = document.getElementById('databaseTableHead');
+        const tbody = document.getElementById('databaseTableBody');
+        
+        if (orders.length === 0) {
+            thead.innerHTML = '';
+            tbody.innerHTML = '<tr><td colspan="20" style="text-align: center; padding: 40px;">Нет данных</td></tr>';
+            isRendering = false;
+            processRenderQueue();
+            console.timeEnd('renderDatabase');
+            return;
+        }
+
+        // Подготавливаем заголовок
+        thead.innerHTML = '<tr><th>Рейс</th><th>№</th><th>ФИО</th><th>Город</th><th>г/п</th><th>Телефон</th><th>Наимование</th><th>Место</th><th>Упак</th><th>шт</th><th>кг</th><th>Цена$</th><th>Сумма$</th><th>Йул кира$</th><th>Сом</th><th>Сотрудник</th><th>Статус</th><th>Дата оплаты</th><th>Накладная</th><th>Telegram</th></tr>';
+        
+        // Подготавливаем данные
+        const totalRows = prepareDataCache();
+        
+        if (totalRows === 0) {
+            tbody.innerHTML = '<tr><td colspan="20" style="text-align: center; padding: 40px;">Нет данных, соответствующих фильтрам</td></tr>';
+            isRendering = false;
+            processRenderQueue();
+            console.timeEnd('renderDatabase');
+            return;
+        }
+        
+        // Очищаем tbody быстро
+        tbody.textContent = '';
+        
+        // Размер батча - 200 строк
+        const BATCH_SIZE = 200;
+        let currentIndex = 0;
+        
+        function renderNextBatch() {
+            const start = currentIndex;
+            const end = Math.min(currentIndex + BATCH_SIZE, totalRows);
+            
+            console.log(`Рендеринг батча: ${start} - ${end} из ${totalRows}`);
+            
+            // Создаем DocumentFragment для текущего батча
+            const fragment = document.createDocumentFragment();
+            
+            for (let i = start; i < end; i++) {
+                const tr = createCachedRow(i, dataCache[i]);
+                fragment.appendChild(tr);
+            }
+            
+            // Добавляем батч в таблицу
+            tbody.appendChild(fragment);
+            
+            currentIndex = end;
+            
+            // Если есть еще строки для рендеринга
+            if (currentIndex < totalRows) {
+                // Планируем следующий батч с небольшим интервалом для неблокирующего UI
+                currentRenderBatch = setTimeout(renderNextBatch, 10);
+            } else {
+                // Все строки отрендерены - добавляем итоговую строку
+                addTotalRow();
+                
+                isRendering = false;
+                currentRenderBatch = null;
+                processRenderQueue();
+                console.timeEnd('renderDatabase');
+                
+                // Показываем уведомление о завершении
+                showNotification(`Отображено ${totalRows} записей (батч по ${BATCH_SIZE} строк)`, 'success');
+            }
+        }
+        
+        // Начинаем рендеринг первого батча
+        setTimeout(renderNextBatch, 0);
+    }
+
+    // Обработка очереди рендеринга
+    function processRenderQueue() {
+        if (renderQueue.length > 0 && !isRendering) {
+            const nextTask = renderQueue.shift();
+            if (nextTask === 'renderDatabase') {
+                // Небольшая задержка перед следующим рендерингом
+                setTimeout(renderDatabase, 50);
+            }
+        }
+    }
+
+    // Добавление итоговой строки
+    function addTotalRow() {
+        const tbody = document.getElementById('databaseTableBody');
+        
+        // Удаляем старую итоговую строку
+        const oldTotal = tbody.querySelector('.total-row');
+        if (oldTotal) oldTotal.remove();
+        
+        if (dataCache.length === 0) return;
+        
+        // Считаем итоги из кеша (быстро)
+        let totalSumDollar = 0;
+        let totalYulKira = 0;
+        let totalSom = 0;
+        
+        for (const item of dataCache) {
+            totalSumDollar += item.sumDollar;
+            totalYulKira += item.yulKira;
+            totalSom += item.som;
+        }
+        
+        const totalRow = document.createElement('tr');
+        totalRow.className = 'total-row';
+        totalRow.innerHTML = `
+            <td colspan="12" style="text-align: right; padding-right: 15px;">
+                <strong>ИТОГО (${dataCache.length} записей):</strong>
+            </td>
+            <td style="text-align: center;"><strong>${totalSumDollar.toFixed(2)}</strong></td>
+            <td style="text-align: center;"><strong>${totalYulKira.toFixed(2)}</strong></td>
+            <td class="som-column" style="text-align: center;"><strong>${totalSom.toLocaleString()}</strong></td>
+            <td colspan="5"></td>
+        `;
+        
+        tbody.appendChild(totalRow);
+    }
+
+    // Функция для отображения уведомлений
+    function showNotification(message, type = 'info') {
+        // Проверяем, существует ли уже контейнер для уведомлений
+        let notificationContainer = document.getElementById('notification-container');
+        
+        if (!notificationContainer) {
+            notificationContainer = document.createElement('div');
+            notificationContainer.id = 'notification-container';
+            notificationContainer.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 10000;
+                max-width: 300px;
+            `;
+            document.body.appendChild(notificationContainer);
+        }
+        
+        // Создаем уведомление
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : '#2196F3'};
+            color: white;
+            padding: 12px 20px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            animation: slideIn 0.3s ease;
+        `;
+        
+        notification.innerHTML = `
+            <strong>${type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ'}</strong>
+            ${message}
+        `;
+        
+        notificationContainer.appendChild(notification);
+        
+        // Автоматическое скрытие через 3 секунды
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => {
+                notification.remove();
+                // Если контейнер пуст, удаляем его тоже
+                if (notificationContainer.children.length === 0) {
+                    notificationContainer.remove();
+                }
+            }, 300);
+        }, 3000);
+    }
+
+    // Добавляем стили для анимации
+    if (!document.querySelector('#notification-styles')) {
+        const style = document.createElement('style');
+        style.id = 'notification-styles';
+        style.textContent = `
+            @keyframes slideIn {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes slideOut {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Оптимизированные функции фильтрации
+    function setFilter(filter) {
+        currentFilter = filter;
+        const btns = document.querySelectorAll('#databaseTab .filter-btn');
+        btns.forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        
+        // Сбрасываем кеш при изменении фильтра
+        rowCache.clear();
+        renderDatabase();
+        calculateTotals();
+    }
+
+    function filterByEmployee() {
+        employeeFilter = document.getElementById('employeeFilter').value;
+        rowCache.clear();
+        renderDatabase();
+        calculateTotals();
+    }
+
+    function filterByDate() {
+        const fromInput = document.getElementById('dateFilterFrom');
+        const toInput = document.getElementById('dateFilterTo');
+        
+        if (fromInput) dateFilterFrom = fromInput.value;
+        if (toInput) dateFilterTo = toInput.value;
+        
+        rowCache.clear();
+        renderDatabase();
+        calculateTotals();
+    }
+
+    // Очистка кеша при обновлении данных
+    function updateRowInCache(orderId, rowId) {
+        // Находим и удаляем старую версию строки из кеша
+        for (const [key, value] of rowCache.entries()) {
+            if (key.includes(`${orderId}-${rowId}`)) {
+                rowCache.delete(key);
+                break;
+            }
+        }
+        
+        // Обновляем dataCache
+        const cacheIndex = dataCache.findIndex(
+            item => item.orderId === orderId && item.rowId === rowId
+        );
+        
+        if (cacheIndex !== -1) {
+            const order = orders.find(o => o.id === orderId);
+            const row = order?.data.find(r => r.rowId === rowId);
+            
+            if (order && row) {
+                const sumDollar = parseFloat(row.data[11]) || 0;
+                const yulKira = parseFloat(row.data[12]) || 0;
+                const som = calculateSom(sumDollar, yulKira);
+                
+                dataCache[cacheIndex] = {
+                    orderId: order.id,
+                    rowId: row.rowId,
+                    flightName: formatFlightName(order.fileName),
+                    data: row.data,
+                    sumDollar: sumDollar,
+                    yulKira: yulKira,
+                    som: som,
+                    employee: row.employee || '',
+                    status: row.status,
+                    paymentDate: row.paymentDate || '-',
+                    priceIdx: findPriceColumn(order.data[0]?.data || [])
+                };
+            }
+        }
+    }
+
+    // Функция для прерывания рендеринга (если нужно)
+    function cancelRendering() {
+        if (currentRenderBatch) {
+            clearTimeout(currentRenderBatch);
+            currentRenderBatch = null;
+        }
+        isRendering = false;
+        renderQueue = [];
+        showNotification('Рендеринг прерван', 'info');
+    }
+
+        window.updateEmployee = async function(orderId, rowId, value) {
+            const order = orders.find(o => o.id == orderId);
+            if (!order) return;
+
+            const row = order.data.find(r => r.rowId === rowId);
+            if (!row) return;
+            
+            row.employee = value;
+            
+            try {
+                const cleanedOrder = cleanData(order);
+                cleanedOrder.lastModified = Date.now();
+                
+                await db.collection('orders').doc(order.id).set(cleanedOrder);
+                
+                showNotification('👤 Сотрудник: ' + value, '#3498db');
+                
+                calculateTotals();
+                
+            } catch (error) {
+                console.error('❌ Ошибка обновления сотрудника:', error);
+                showNotification('❌ Ошибка!', '#e74c3c');
+            }
+        };
+
+        window.updateEmployeeModal = async function(orderId, rowId, value) {
+            const order = orders.find(o => o.id == orderId);
+            if (!order) return;
+            
+            const row = order.data.find(r => r.rowId === rowId);
+            if (!row) return;
+            
+            row.employee = value;
+            
+            try {
+                const cleanedOrder = cleanData(order);
+                cleanedOrder.lastModified = Date.now();
+                
+                await db.collection('orders').doc(order.id).set(cleanedOrder);
+                
+                showNotification('👤 Сотрудник: ' + value, '#3498db');
+                
+                showOrderDetails(orderId);
+                
+                calculateTotals();
+                calculateMainTotals();
+                
+            } catch (error) {
+                console.error('❌ Ошибка:', error);
+                showNotification('❌ Ошибка!', '#e74c3c');
+            }
+        };
+
+        window.editCellDB = async function(orderId, rowId, colIndex, cellElement) {
+            const currentValue = cellElement.textContent.trim();
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'cell-input';
+            input.value = currentValue;
+            
+            cellElement.textContent = '';
+            cellElement.appendChild(input);
+            input.focus();
+            input.select();
+            
+            async function saveEdit() {
+                const newValue = input.value.trim();
+                const order = orders.find(o => o.id == orderId);
+                
+                if (!order) {
+                    cellElement.textContent = currentValue;
+                    return;
+                }
+                
+                const row = order.data.find(r => r.rowId === rowId);
+                if (!row) {
+                    cellElement.textContent = currentValue;
+                    return;
+                }
+                
+                row.data[colIndex] = newValue;
+                
+                if (colIndex === 9 || colIndex === 10 || colIndex === 11 || colIndex === 12) {
+                    const kg = parseFloat(row.data[9]) || 0;
+                    const price = parseFloat(row.data[10]) || 0;
+                    
+                    if (colIndex === 9 || colIndex === 10) {
+                        row.data[11] = (kg * price).toFixed(2);
+                    }
+                    
+                    const sumDollar = parseFloat(row.data[11]) || 0;
+                    const yulKira = parseFloat(row.data[12]) || 0;
+                    const som = calculateSom(sumDollar, yulKira);
+                    
+                    const tr = cellElement.closest('tr');
+                    if (tr) {
+                        if (colIndex === 9 || colIndex === 10) {
+                            const sumCell = tr.cells[12];
+                            if (sumCell) sumCell.textContent = row.data[11];
+                        }
+                        
+                        if (colIndex === 12) {
+                            const yulKiraCell = tr.cells[13];
+                            if (yulKiraCell) yulKiraCell.textContent = newValue;
+                        }
+                        
+                        const somCell = tr.cells[14];
+                        if (somCell) somCell.textContent = som.toLocaleString();
+                    }
+                }
+                
+                try {
+                    const cleanedOrder = cleanData(order);
+                    cleanedOrder.lastModified = Date.now();
+                    
+                    await db.collection('orders').doc(order.id).set(cleanedOrder);
+                    
+                    showNotification('💾 Сохранено!', '#27ae60');
+                    cellElement.textContent = newValue;
+                    calculateTotals();
+                    
+                } catch (error) {
+                    console.error('❌ Ошибка сохранения:', error);
+                    showNotification('❌ Ошибка сохранения!', '#e74c3c');
+                    cellElement.textContent = currentValue;
+                }
+            }
+
+            input.onblur = saveEdit;
+            input.onkeydown = (e) => { 
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveEdit(); 
+                }
+                if (e.key === 'Escape') {
+                    cellElement.textContent = currentValue;
+                }
+            };
+        };
+
+        window.showOrderDetails = function(orderId) {
+            const order = orders.find(o => o.id == orderId);
+            if (!order) return;
+            
+            currentOrder = order;
+            document.getElementById('modalTitle').textContent = formatFlightName(order.fileName);
+            
+            if (order.data.length === 0) {
+                document.getElementById('tableWrapper').innerHTML = '<p style="text-align: center; padding: 40px;">Нет данных</p>';
+                modal.classList.add('active');
+                return;
+            }
+
+            const totals = calculateModalTotals();
+            displayModalTotals(totals.totalAll, totals.totalPaid, totals.totalUnpaid, totals.totalSom, totals.totalSomPaid, totals.totalSomUnpaid);
+
+            let tableHTML = '<table class="database-table">';
+            
+            const headers = order.data[0] || { data: [] };
+            const headerData = headers.data || headers;
+            const priceIdx = findPriceColumn(headerData);
+            
+            let totalSumDollar = 0;
+            let totalYulKira = 0;
+            let totalSom = 0;
+            let rowCount = 0;
+
+            tableHTML += '<thead><tr>';
+            tableHTML += '<th>№</th><th>ФИО</th><th>Город</th><th>г/п</th><th>Телефон</th><th>Наимование</th><th>Место</th><th>Упак</th><th>шт</th><th>кг</th><th>Цена$</th><th>Сумма$</th><th>Йул кира$</th><th>Сом</th><th>Сотрудник</th><th>Статус</th><th>Дата оплаты</th><th>Накладная</th><th>Telegram</th>';
+            tableHTML += '</tr></thead><tbody>';
+
+            order.data.forEach((row, rowIndex) => {
+                if (rowIndex === 0) return;
+                
+                if (isHeaderRow(row, headerData)) return;
+                
+                if (modalFilter === 'paid' && row.status !== 'оплачено') return;
+                if (modalFilter === 'unpaid' && row.status === 'оплачено') return;
+                
+                const rowData = row.data || [];
+                const hasData = rowData.some(cell => cell && String(cell).trim() !== '');
+                if (!hasData) return;
+                
+                const sumDollar = parseFloat(rowData[11]) || 0;
+                const yulKira = parseFloat(rowData[12]) || 0;
+                const som = calculateSom(sumDollar, yulKira);
+                
+                totalSumDollar += sumDollar;
+                totalYulKira += yulKira;
+                totalSom += som;
+                rowCount++;
+                
+                tableHTML += '<tr>';
+                
+                for (let colIndex = 0; colIndex < 13; colIndex++) {
+                    const value = rowData[colIndex] || '';
+                    if (colIndex !== priceIdx) {
+                        tableHTML += `<td class="editable-cell" onclick="editCell('${order.id}', ${row.rowId}, ${colIndex}, this)">${value}</td>`;
+                    } else {
+                        tableHTML += `<td>${value}</td>`;
+                    }
+                }
+                
+                tableHTML += `<td class="som-column">${som.toLocaleString()}</td>`;
+                
+                const employeeName = row.employee || '';
+                tableHTML += `<td style="text-align: center; background: #e3f2fd;">
+                    <select onchange="updateEmployeeModal('${order.id}', ${row.rowId}, this.value)" style="width: 100%; padding: 5px; border-radius: 5px; border: 1px solid #667eea;">
+                        <option value="">Выбрать</option>
+                        ${EMPLOYEES.map(emp => `<option value="${emp}" ${employeeName === emp ? 'selected' : ''}>${emp}</option>`).join('')}
+                    </select>
+                </td>`;
+                
+                const statusClass = row.status === 'оплачено' ? 'status-paid' : 'status-unpaid';
+                const statusText = row.status === 'оплачено' ? '✅ Оплачено' : '❌ Не оплачено';
+                const paymentDateText = row.paymentDate || '-';
+                
+                tableHTML += `
+                    <td class="status-cell ${statusClass}" onclick="toggleRowStatus('${order.id}', ${row.rowId}, event, 'modal')">${statusText}</td>
+                    <td style="text-align: center;">${paymentDateText}</td>
+                    <td style="text-align: center;">
+                        <button class="btn btn-print-invoice" onclick="printInvoice('${order.id}', ${row.rowId})">🖨️</button>
+                    </td>
+                    <td style="text-align: center;">
+                        <button class="btn btn-telegram-row" onclick="sendToTelegram('${order.id}', ${row.rowId})">📤 Telegram</button>
+                    </td>
+                `;
+                tableHTML += '</tr>';
+            });
+            
+            if (rowCount > 0) {
+                tableHTML += `
+                    <tr class="total-row">
+                        <td colspan="11" style="text-align: right; padding-right: 15px;">ИТОГО (${rowCount} записей):</td>
+                        <td style="text-align: center;"><strong>${totalSumDollar.toFixed(2)}</strong></td>
+                        <td style="text-align: center;"><strong>${totalYulKira.toFixed(2)}</strong></td>
+                        <td class="som-column" style="text-align: center;"><strong>${totalSom.toLocaleString()}</strong></td>
+                        <td colspan="5"></td>
+                    </tr>
+                `;
+            } else {
+                tableHTML += '<tr><td colspan="19" style="text-align: center; padding: 40px;">Нет данных, соответствующих фильтрам</td></tr>';
+            }
+
+            tableHTML += '</tbody></table>';
+            document.getElementById('tableWrapper').innerHTML = tableHTML;
+            modal.classList.add('active');
+        }
+
+        window.editCell = async function(orderId, rowId, colIndex, cellElement) {
+            const currentValue = cellElement.textContent.trim();
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'cell-input';
+            input.value = currentValue;
+            
+            cellElement.textContent = '';
+            cellElement.appendChild(input);
+            input.focus();
+            input.select();
+            
+            async function saveEdit() {
+                const newValue = input.value.trim();
+                const order = orders.find(o => o.id == orderId);
+                
+                if (!order) {
+                    cellElement.textContent = currentValue;
+                    return;
+                }
+                
+                const row = order.data.find(r => r.rowId === rowId);
+                if (!row) {
+                    cellElement.textContent = currentValue;
+                    return;
+                }
+                
+                row.data[colIndex] = newValue;
+                
+                if (colIndex === 9 || colIndex === 10 || colIndex === 11 || colIndex === 12) {
+                    const kg = parseFloat(row.data[9]) || 0;
+                    const price = parseFloat(row.data[10]) || 0;
+                    
+                    if (colIndex === 9 || colIndex === 10) {
+                        row.data[11] = (kg * price).toFixed(2);
+                    }
+                    
+                    const sumDollar = parseFloat(row.data[11]) || 0;
+                    const yulKira = parseFloat(row.data[12]) || 0;
+                    const som = calculateSom(sumDollar, yulKira);
+                    
+                    const tr = cellElement.closest('tr');
+                    if (tr) {
+                        if (colIndex === 9 || colIndex === 10) {
+                            const sumCell = tr.cells[11];
+                            if (sumCell) sumCell.textContent = row.data[11];
+                        }
+                        
+                        if (colIndex === 12) {
+                            const yulKiraCell = tr.cells[12];
+                            if (yulKiraCell) yulKiraCell.textContent = newValue;
+                        }
+                        
+                        const somCell = tr.cells[13];
+                        if (somCell) somCell.textContent = som.toLocaleString();
+                    }
+                }
+                
+                try {
+                    const cleanedOrder = cleanData(order);
+                    cleanedOrder.lastModified = Date.now();
+                    
+                    await db.collection('orders').doc(order.id).set(cleanedOrder);
+                    
+                    showNotification('💾 Сохранено!', '#27ae60');
+                    cellElement.textContent = newValue;
+                    
+                    const totals = calculateModalTotals();
+                    displayModalTotals(totals.totalAll, totals.totalPaid, totals.totalUnpaid, 
+                                      totals.totalSom, totals.totalSomPaid, totals.totalSomUnpaid);
+                    
+                } catch (error) {
+                    console.error('❌ Ошибка сохранения:', error);
+                    showNotification('❌ Ошибка сохранения!', '#e74c3c');
+                    cellElement.textContent = currentValue;
+                }
+            }
+            
+            input.addEventListener('blur', saveEdit);
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveEdit();
+                }
+            });
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    cellElement.textContent = currentValue;
+                }
+            });
+        }
+
+        // ИСПРАВЛЕНО: Универсальная функция toggleRowStatus для модалки и базы
+        // ИСПРАВЛЕНО: Унифицированный формат даты оплаты
+        window.toggleRowStatus = async function(orderId, rowId, evt, source = 'modal') {
+            const order = orders.find(o => o.id == orderId);
+            if (!order) return;
+            
+            const row = order.data.find(r => r.rowId === rowId);
+            if (!row) return;
+            
+            if (row.status === 'оплачено') {
+                row.status = 'не оплачено';
+                row.paymentDate = null;
+            } else {
+                row.status = 'оплачено';
+                const now = new Date();
+                const day = now.getDate().toString().padStart(2, '0');
+                const month = (now.getMonth() + 1).toString().padStart(2, '0');
+                const year = now.getFullYear();
+                const hours = now.getHours().toString().padStart(2, '0');
+                const minutes = now.getMinutes().toString().padStart(2, '0');
+                row.paymentDate = `${day}.${month}.${year} ${hours}:${minutes}`;
+            }
+            
+            // Обновляем UI в зависимости от источника
+            if (source === 'modal') {
+                const clickedCell = evt ? evt.target : null;
+                if (clickedCell) {
+                    if (row.status === 'оплачено') {
+                        clickedCell.className = 'status-cell status-paid';
+                        clickedCell.textContent = '✅ Оплачено';
+                    } else {
+                        clickedCell.className = 'status-cell status-unpaid';
+                        clickedCell.textContent = '❌ Не оплачено';
+                    }
+                    
+                    const nextCell = clickedCell.nextElementSibling;
+                    if (nextCell) {
+                        nextCell.textContent = row.paymentDate || '-';
+                    }
+                }
+            } else if (source === 'database') {
+                const rowElement = document.getElementById(`row-${orderId}-${rowId}`);
+                if (rowElement) {
+                    const statusCell = rowElement.cells[16];
+                    const dateCell = rowElement.cells[17];
+                    
+                    if (statusCell) {
+                        if (row.status === 'оплачено') {
+                            statusCell.className = 'status-cell status-paid';
+                            statusCell.textContent = '✅ Оплачено';
+                        } else {
+                            statusCell.className = 'status-cell status-unpaid';
+                            statusCell.textContent = '❌ Не оплачено';
+                        }
+                    }
+                    
+                    if (dateCell) {
+                        dateCell.textContent = row.paymentDate || '-';
+                    }
+                }
+            }
+
+            updateOrderCardUI(order);
+
+            const totals = calculateModalTotals();
+            displayModalTotals(totals.totalAll, totals.totalPaid, totals.totalUnpaid, 
+                              totals.totalSom, totals.totalSomPaid, totals.totalSomUnpaid);
+            
+            calculateTotals();
+            calculateMainTotals();
+
+            try {
+                const cleanedOrder = cleanData(order);
+                cleanedOrder.lastModified = Date.now();
+                await db.collection('orders').doc(order.id).set(cleanedOrder);
+                showNotification('💾 Сохранено!', '#27ae60');
+            } catch (error) {
+                console.error('❌ Error:', error);
+                showNotification('❌ Ошибка сохранения!', '#e74c3c');
+            }
+        };
+
+        function updateOrderCardUI(order) {
+            const card = document.querySelector(`.order-card[data-order-id="${order.id}"]`);
+            if (!card) return;
+            
+            const dataRows = order.data.filter((r, i) => i > 0);
+            const paidCount = dataRows.filter(r => r.status === 'оплачено').length;
+            const unpaidCount = dataRows.length - paidCount;
+            
+            const paidInfo = card.querySelector('.order-info:nth-child(5)');
+            const unpaidInfo = card.querySelector('.order-info:nth-child(6)');
+            
+            if (paidInfo) paidInfo.textContent = `✅ ${paidCount}`;
+            if (unpaidInfo) unpaidInfo.textContent = `❌ ${unpaidCount}`;
+        }
+
+        window.printMain = function() {
+            window.print();
+        }
+
+        window.printDatabase = function() {
+            window.print();
+        }
+
+        window.printModal = function() {
+            window.print();
+        }
+
+        // ИСПРАВЛЕНО: Debounce для поиска с обновлением итогов
+        window.filterDatabaseTable = function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const searchValue = document.getElementById('dbSearchInput').value.toLowerCase();
+                const rows = document.querySelectorAll('#databaseTable tbody tr');
+                
+                let visibleRows = 0;
+                let totalSumDollar = 0;
+                let totalYulKira = 0;
+                let totalSom = 0;
+                
+                for (let i = 0; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (row.classList.contains('total-row')) {
+                        row.style.display = 'none';
+                        continue;
+                    }
+                    
+                    const cells = row.getElementsByTagName('td');
+                    let found = false;
+                    
+                    for (let j = 0; j < cells.length; j++) {
+                        const cellText = cells[j].textContent.toLowerCase();
+                        if (cellText.includes(searchValue)) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    
+                    if (found || searchValue === '') {
+                        row.style.display = '';
+                        visibleRows++;
+                        
+                        try {
+                            const sumDollarText = cells[12]?.textContent || '0';
+                            const yulKiraText = cells[13]?.textContent || '0';
+                            const somText = cells[14]?.textContent || '0';
+                            
+                            const sumDollar = parseFloat(sumDollarText.replace(/[^\d.-]/g, '')) || 0;
+                            const yulKira = parseFloat(yulKiraText.replace(/[^\d.-]/g, '')) || 0;
+                            const som = parseFloat(somText.replace(/[^\d]/g, '')) || 0;
+                            
+                            totalSumDollar += sumDollar;
+                            totalYulKira += yulKira;
+                            totalSom += som;
+                        } catch (e) {
+                            console.error('Ошибка парсинга сумм:', e);
+                        }
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+                
+                const oldTotal = document.querySelector('#databaseTable .total-row');
+                if (oldTotal) oldTotal.remove();
+                
+                if (visibleRows > 0) {
+                    const totalRow = document.createElement('tr');
+                    totalRow.className = 'total-row';
+                    totalRow.innerHTML = `
+                        <td colspan="12" style="text-align: right; padding-right: 15px;">ИТОГО поиска (${visibleRows} записей):</td>
+                        <td style="text-align: center;"><strong>${totalSumDollar.toFixed(2)} $</strong></td>
+                        <td style="text-align: center;"><strong>${totalYulKira.toFixed(2)} $</strong></td>
+                        <td class="som-column" style="text-align: center;"><strong>${totalSom.toLocaleString()} с</strong></td>
+                        <td colspan="5"></td>
+                    `;
+                    document.getElementById('databaseTableBody').appendChild(totalRow);
+                }
+            }, 300);
+        }
+
+        window.clearDatabaseSearch = function() {
+            document.getElementById('dbSearchInput').value = '';
+            filterDatabaseTable();
+        }
+
+        // ИСПРАВЛЕНО: filterModalTable с пересчетом итогов
+        window.filterModalTable = function() {
+            clearTimeout(modalSearchTimeout);
+            modalSearchTimeout = setTimeout(() => {
+                const searchValue = document.getElementById('modalSearchInput').value.toLowerCase();
+                const table = document.querySelector('#tableWrapper table');
+                if (!table) return;
+                
+                const tbody = table.querySelector('tbody');
+                const rows = tbody.getElementsByTagName('tr');
+                
+                let visibleRows = 0;
+                let totalSumDollar = 0;
+                let totalYulKira = 0;
+                let totalSom = 0;
+                
+                for (let i = 0; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (row.classList.contains('total-row')) {
+                        row.style.display = 'none';
+                        continue;
+                    }
+                    
+                    const cells = row.getElementsByTagName('td');
+                    let found = false;
+                    
+                    for (let j = 0; j < cells.length; j++) {
+                        const cellText = cells[j].textContent.toLowerCase();
+                        if (cellText.includes(searchValue)) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    
+                    if (found || searchValue === '') {
+                        row.style.display = '';
+                        visibleRows++;
+                        
+                        try {
+                            const sumDollarText = cells[11]?.textContent || '0';
+                            const yulKiraText = cells[12]?.textContent || '0';
+                            const somText = cells[13]?.textContent || '0';
+                            
+                            const sumDollar = parseFloat(sumDollarText.replace(/[^\d.-]/g, '')) || 0;
+                            const yulKira = parseFloat(yulKiraText.replace(/[^\d.-]/g, '')) || 0;
+                            const som = parseFloat(somText.replace(/[^\d]/g, '')) || 0;
+                            
+                            totalSumDollar += sumDollar;
+                            totalYulKira += yulKira;
+                            totalSom += som;
+                        } catch (e) {
+                            console.error('Ошибка парсинга сумм:', e);
+                        }
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+                
+                const oldTotal = table.querySelector('.total-row');
+                if (oldTotal) oldTotal.remove();
+                
+                if (visibleRows > 0) {
+                    const totalRow = document.createElement('tr');
+                    totalRow.className = 'total-row';
+                    totalRow.innerHTML = `
+                        <td colspan="11" style="text-align: right; padding-right: 15px;">ИТОГО поиска (${visibleRows} записей):</td>
+                        <td style="text-align: center;"><strong>${totalSumDollar.toFixed(2)} $</strong></td>
+                        <td style="text-align: center;"><strong>${totalYulKira.toFixed(2)} $</strong></td>
+                        <td class="som-column" style="text-align: center;"><strong>${totalSom.toLocaleString()} с</strong></td>
+                        <td colspan="5"></td>
+                    `;
+                    tbody.appendChild(totalRow);
+                }
+            }, 300);
+        }
+
+        window.clearModalSearch = function() {
+            document.getElementById('modalSearchInput').value = '';
+            filterModalTable();
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            document.getElementById('mainTab').classList.add('hidden');
+            document.getElementById('databaseTab').classList.add('hidden');
+            document.getElementById('adminTab').classList.add('hidden');
+
+            if (tab === 'main') {
+                document.getElementById('mainTab').classList.remove('hidden');
+            } else if (tab === 'database') {
+                document.getElementById('databaseTab').classList.remove('hidden');
+                const tbody = document.getElementById('databaseTableBody');
+                if (!tbody.children.length || tbody.children.length === 0) {
+                    renderDatabase();
+                }
+            } else if (tab === 'admin') {
+                document.getElementById('adminTab').classList.remove('hidden');
+                renderAdminPanel();
+            }
+        }
+
+        async function renderAdminPanel() {
+            document.getElementById('kgzRateInput').value = getKgzRate();
+            await renderUsersTable();
+            await renderUserStats();
+        }
+
+        window.updateKgzRate = function(value) {
+            const rate = parseFloat(value);
+            if (rate && rate > 0) {
+                setKgzRate(rate);
+                renderAll();
+                alert('✅ Курс обновлен: ' + rate + ' сом');
+            } else {
+                alert('❌ Введите корректное значение курса');
+                document.getElementById('kgzRateInput').value = getKgzRate();
+            }
+        }
+
+        window.showRatePopup = function() {
+            const currentRate = getKgzRate();
+            
+            const newRate = prompt(`Текущий курс: 1$ = ${currentRate} сом\n\nВведите новый курс:`, currentRate);
+            
+            if (newRate !== null) {
+                const rate = parseFloat(newRate.replace(',', '.'));
+                if (!isNaN(rate) && rate > 0) {
+                    setKgzRate(rate);
+                    renderAll();
+                    showNotification(`✅ Курс обновлен: 1$ = ${rate} сом`, '#f39c12');
+                } else {
+                    alert('❌ Введите корректное число!');
+                }
+            }
+        }
+
+        async function renderUsersTable() {
+            const users = await getFromStorage('users') || [];
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = '';
+
+            users.forEach((user, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-weight: 600;">${user.email}</td>
+                    <td>
+                        <input type="text" value="${user.password}" 
+                               onchange="updateUserPassword(${index}, this.value)"
+                               style="width: 100%; padding: 5px; border: 1px solid #667eea; border-radius: 5px;">
+                    </td>
+                    <td style="text-align: center;">
+                        <span style="padding: 5px 15px; border-radius: 20px; font-weight: 600; 
+                                     background: ${user.isAdmin ? '#27ae60' : '#3498db'}; color: white;">
+                            ${user.isAdmin ? '👑 Админ' : '👤 Пользователь'}
+                        </span>
+                    </td>
+                    <td style="text-align: center;">
+                        ${!user.isAdmin ? `<button class="btn btn-danger" onclick="deleteUser(${index})">🗑️ Удалить</button>` : '<span style="color: #95a5a6;">Защищено</span>'}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function renderUserStats() {
+            const users = await getFromStorage('users') || [];
+            const container = document.getElementById('userStatsContainer');
+            
+            let statsHTML = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">';
+            
+            for (const user of users) {
+                const snapshot = await db.collection('orders')
+                    .where('userEmail', '==', user.email)
+                    .get();
+                
+                let totalOrders = 0;
+                let totalPaid = 0;
+                let totalUnpaid = 0;
+                
+                snapshot.forEach(doc => {
+                    const order = doc.data();
+                    totalOrders++;
+                    if (order.data) {
+                        order.data.forEach((row, idx) => {
+                            if (idx > 0 && row.data && row.data.some(cell => cell && String(cell).trim() !== '')) {
+                                if (row.status === 'оплачено') {
+                                    totalPaid++;
+                                } else {
+                                    totalUnpaid++;
+                                }
+                            }
+                        });
+                    }
+                });
+                
+                statsHTML += `
+                    <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">${user.isAdmin ? '👑' : '👤'} ${user.email}</h3>
+                        <div style="color: #7f8c8d; font-size: 0.95em;">
+                            <div style="margin-bottom: 8px;">📦 Всего рейсов: <strong>${totalOrders}</strong></div>
+                            <div style="margin-bottom: 8px; color: #27ae60;">✅ Оплачено: <strong>${totalPaid}</strong></div>
+                            <div style="color: #e74c3c;">❌ Не оплачено: <strong>${totalUnpaid}</strong></div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            statsHTML += '</div>';
+            container.innerHTML = statsHTML;
+        }
+
+        window.addNewUser = async function() {
+            const email = document.getElementById('newUserEmail').value.trim();
+            const password = document.getElementById('newUserPassword').value;
+            const messageDiv = document.getElementById('addUserMessage');
+
+            if (!email || !password) {
+                messageDiv.style.color = '#e74c3c';
+                messageDiv.textContent = '❌ Заполните все поля';
+                return;
+            }
+
+            const users = await getFromStorage('users') || [];
+            
+            if (users.find(u => u.email === email)) {
+                messageDiv.style.color = '#e74c3c';
+                messageDiv.textContent = '❌ Пользователь с таким email уже существует';
+                return;
+            }
+
+            users.push({ email, password, isAdmin: false });
+            await setToStorage('users', users);
+
+            messageDiv.style.color = '#27ae60';
+            messageDiv.textContent = '✅ Пользователь успешно добавлен';
+            
+            document.getElementById('newUserEmail').value = '';
+            document.getElementById('newUserPassword').value = '';
+
+            setTimeout(() => {
+                messageDiv.textContent = '';
+            }, 3000);
+
+            renderAdminPanel();
+        }
+
+        window.updateUserPassword = async function(index, newPassword) {
+            const users = await getFromStorage('users') || [];
+            if (users[index]) {
+                users[index].password = newPassword;
+                await setToStorage('users', users);
+            }
+        }
+
+        window.deleteUser = async function(index) {
+            const users = await getFromStorage('users') || [];
+            
+            if (users[index] && users[index].isAdmin) {
+                alert('Нельзя удалить администратора');
+                return;
+            }
+
+            if (confirm(`Удалить пользователя ${users[index].email}?`)) {
+                const userEmail = users[index].email;
+                users.splice(index, 1);
+                await setToStorage('users', users);
+                
+                const snapshot = await db.collection('orders')
+                    .where('userEmail', '==', userEmail)
+                    .get();
+                
+                const batch = db.batch();
+                snapshot.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+                
+                renderAdminPanel();
+            }
+        }
+
+        // ГОЛОСОВОЙ ПОМОЩНИК
+        let recognition = null;
+        let isListening = false;
+
+        function showNotification(text, color = '#27ae60') {
+            const old = document.querySelector('.voice-notification');
+            if (old) old.remove();
+
+            const notification = document.createElement('div');
+            notification.className = 'voice-notification';
+            notification.style.top = '20px';
+            notification.style.background = color;
+            notification.textContent = text;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }, 2000);
+        }
+
+        function speak(text) {
+            showNotification('✅ ' + text);
+            
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ru-RU';
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        window.processVoiceCommand = function(text) {
+            const lower = text.toLowerCase();
+            showNotification('🎤 "' + text + '"', '#3498db');
+            
+            if (lower.match(/оплати|оплатить|оплачен|tul|tulov|tulandi|тўлов/)) {
+                const name = text.replace(/оплати|оплатить|оплачен|tul|tulov|tulandi|тўлов|рейс|reys|\d+/gi, '').trim();
+                speak('Оплачиваю ' + name);
+                
+                let count = 0;
+                let toSave = [];
+                
+                orders.forEach(order => {
+                    let changed = false;
+                    order.data.forEach((row, i) => {
+                        if (i > 0 && row.data) {
+                            const fio = (row.data[1] || '').toLowerCase();
+                            if (fio.includes(name.toLowerCase())) {
+                                row.status = 'оплачено';
+                                const now = new Date();
+                                const day = now.getDate().toString().padStart(2, '0');
+                                const month = (now.getMonth() + 1).toString().padStart(2, '0');
+                                const year = now.getFullYear();
+                                const hours = now.getHours().toString().padStart(2, '0');
+                                const minutes = now.getMinutes().toString().padStart(2, '0');
+                                row.paymentDate = `${day}.${month}.${year} ${hours}:${minutes}`;
+                                count++;
+                                changed = true;
+                            }
+                        }
+                    });
+                    if (changed) toSave.push(order);
+                });
+                
+                if (count > 0) {
+                    showNotification(`🔄 Сохраняю ${count} записей...`, '#3498db');
+                    // Сохраняем все заказы
+                    toSave.forEach(order => saveOrder(order));
+                    renderAll();
+                    speak('Оплачено ' + count + ' для ' + name);
+                } else {
+                    speak('Не найден ' + name);
+                }
+                return;
+            }
+            
+            if (lower.match(/сними|снять|отмени|bekor|бекор/)) {
+                const name = text.replace(/сними|снять|отмени|оплату|не|оплачен|bekor|бекор|рейс|reys|\d+/gi, '').trim();
+                speak('Снимаю оплату ' + name);
+                
+                let count = 0;
+                let toSave = [];
+                
+                orders.forEach(order => {
+                    let changed = false;
+                    order.data.forEach((row, i) => {
+                        if (i > 0 && row.data) {
+                            const fio = (row.data[1] || '').toLowerCase();
+                            if (fio.includes(name.toLowerCase())) {
+                                row.status = 'не оплачено';
+                                row.paymentDate = null;
+                                count++;
+                                changed = true;
+                            }
+                        }
+                    });
+                    if (changed) toSave.push(order);
+                });
+                
+                if (count > 0) {
+                    showNotification(`🔄 Сохраняю ${count} записей...`, '#3498db');
+                    toSave.forEach(order => saveOrder(order));
+                    renderAll();
+                    speak('Снято ' + count + ' для ' + name);
+                } else {
+                    speak('Не найден ' + name);
+                }
+                return;
+            }
+            
+            if (lower.match(/назначь|tayinla|тайинла/)) {
+                let emp = EMPLOYEES.find(e => lower.includes(e.toLowerCase()));
+                if (!emp) { speak('Сотрудник не найден'); return; }
+                
+                const name = text.replace(new RegExp(emp, 'gi'), '')
+                    .replace(/назначь|tayinla|тайинла|для|учун|рейс|reys|\d+/gi, '').trim();
+                speak('Назначаю ' + emp);
+                
+                let count = 0;
+                let toSave = [];
+                
+                orders.forEach(order => {
+                    let changed = false;
+                    order.data.forEach((row, i) => {
+                        if (i > 0 && row.data) {
+                            const fio = (row.data[1] || '').toLowerCase();
+                            if (fio.includes(name.toLowerCase())) {
+                                row.employee = emp;
+                                count++;
+                                changed = true;
+                            }
+                        }
+                    });
+                    if (changed) toSave.push(order);
+                });
+                
+                if (count > 0) {
+                    toSave.forEach(o => saveOrder(o));
+                    renderAll();
+                    speak('Назначен ' + emp);
+                } else {
+                    speak('Не найден ' + name);
+                }
+                return;
+            }
+            
+            if (lower.match(/найди|найти|поиск|top|топ|qidi/)) {
+                const search = text.replace(/найди|найти|поиск|top|топ|qidi|киди/gi, '').trim();
+                const input = document.getElementById('dbSearchInput') || 
+                              document.getElementById('modalSearchInput');
+                if (input) {
+                    input.value = search;
+                    input.dispatchEvent(new Event('input'));
+                    speak('Ищу ' + search);
+                }
+                return;
+            }
+            
+            if (lower.match(/помощь|yordam|ёрдам/)) {
+                speak('Скажите: оплати имя, сними оплату имя, назначь сотрудника имя');
+                return;
+            }
+            
+            const input = document.getElementById('dbSearchInput') || 
+                          document.getElementById('modalSearchInput');
+            if (input) {
+                input.value = text;
+                input.dispatchEvent(new Event('input'));
+                speak('Ищу ' + text);
+            }
+        };
+
+        window.startVoiceSearch = function(inputId) {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert('❌ Браузер не поддерживает. Используйте Chrome');
+                return;
+            }
+            
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (!recognition) {
+                recognition = new SpeechRecognition();
+                recognition.lang = 'ru-RU';
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                
+                recognition.onresult = (e) => {
+                    const text = e.results[0][0].transcript;
+                    processVoiceCommand(text);
+                };
+                
+                recognition.onerror = (e) => {
+                    isListening = false;
+                    
+                    if (e.error === 'no-speech') {
+                        speak('Не услышал. Попробуй ещё раз');
+                    } else if (e.error === 'not-allowed' || e.error === 'permission-denied') {
+                        alert('Разрешите доступ к микрофону');
+                    }
+                    
+                    document.querySelectorAll('.btn-success').forEach(btn => {
+                        if (btn.textContent.includes('Слушаю')) {
+                            btn.textContent = '🎤 Голос';
+                            btn.style.background = '#27ae60';
+                        }
+                    });
+                };
+                
+                recognition.onstart = () => {
+                    isListening = true;
+                    document.querySelectorAll('.btn-success').forEach(btn => {
+                        if (btn.onclick && btn.onclick.toString().includes('startVoiceSearch')) {
+                            btn.textContent = '🔴 Слушаю...';
+                            btn.style.background = '#e74c3c';
+                        }
+                    });
+                };
+                
+                recognition.onend = () => {
+                    isListening = false;
+                    document.querySelectorAll('.btn-success').forEach(btn => {
+                        if (btn.textContent.includes('Слушаю')) {
+                            btn.textContent = '🎤 Голос';
+                            btn.style.background = '#27ae60';
+                        }
+                    });
+                };
+            }
+            
+            try {
+                if (isListening) recognition.stop();
+                else recognition.start();
+            } catch(e) {
+                recognition.stop();
+                setTimeout(() => recognition.start(), 100);
+            }
+        };
+
+        // Добавлена недостающая функция
+        function updateRowsInDatabase(order) {
+            order.data.forEach((row, idx) => {
+                if (idx > 0) {
+                    const rowElement = document.getElementById(`row-${order.id}-${row.rowId}`);
+                    if (rowElement) {
+                        for (let i = 0; i < 13; i++) {
+                            const cell = rowElement.cells[i + 1];
+                            if (cell && row.data[i] !== undefined) {
+                                cell.textContent = row.data[i] || '';
+                            }
+                        }
+                        
+                        const sumDollar = parseFloat(row.data[11]) || 0;
+                        const yulKira = parseFloat(row.data[12]) || 0;
+                        const som = calculateSom(sumDollar, yulKira);
+                        const somCell = rowElement.cells[14];
+                        if (somCell) somCell.textContent = som.toLocaleString();
+                        
+                        const statusCell = rowElement.cells[16];
+                        if (statusCell) {
+                            if (row.status === 'оплачено') {
+                                statusCell.className = 'status-cell status-paid';
+                                statusCell.textContent = '✅ Оплачено';
+                            } else {
+                                statusCell.className = 'status-cell status-unpaid';
+                                statusCell.textContent = '❌ Не оплачено';
+                            }
+                        }
+                        
+                        const dateCell = rowElement.cells[17];
+                        if (dateCell) {
+                            dateCell.textContent = row.paymentDate || '-';
+                        }
+                    }
+                }
+            });
+        }
+
+        function displayMainTotals(totalAll, totalPaid, totalUnpaid, totalSom, totalSomPaid, totalSomUnpaid) {
+            const container = document.getElementById('mainTotalsSummary');
+            
+            if (orders.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+            
+            let html = `
+                <h3 style="margin-bottom: 15px; color: #2c3e50; text-align: center;">📊 Общие суммы</h3>
+                <div class="totals-grid">
+                    <div class="total-card">
+                        <div class="total-card-label">Общая сумма ($)</div>
+                        <div class="total-card-value total-all">${totalAll.toFixed(2)} $</div>
+                    </div>
+                    <div class="total-card">
+                        <div class="total-card-label">✅ Оплачено ($)</div>
+                        <div class="total-card-value total-paid">${totalPaid.toFixed(2)} $</div>
+                    </div>
+                    <div class="total-card">
+                        <div class="total-card-label">❌ Не оплачено ($)</div>
+                        <div class="total-card-value total-unpaid">${totalUnpaid.toFixed(2)} $</div>
+                    </div>
+                    <div class="total-card">
+                        <div class="total-card-label">Общая сумма (сом)</div>
+                        <div class="total-card-value total-som">${totalSom.toLocaleString()} с</div>
+                    </div>
+                    <div class="total-card">
+                        <div class="total-card-label">✅ Оплачено (сом)</div>
+                        <div class="total-card-value total-paid">${totalSomPaid.toLocaleString()} с</div>
+                    </div>
+                    <div class="total-card">
+                        <div class="total-card-label">❌ Не оплачено (сом)</div>
+                        <div class="total-card-value total-unpaid">${totalSomUnpaid.toLocaleString()} с</div>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+
+        function displayModalTotals(totalAll, totalPaid, totalUnpaid, totalSom, totalSomPaid, totalSomUnpaid) {
+            const container = document.getElementById('modalTotalsSummary');
+            
+            let html = `
+                <h3 style="margin-bottom: 15px; color: #2c3e50; text-align: center;">📊 Итоги по рейсу</h3>
+                <div class="totals-grid">
+                    <div class="total-card">
+                        <div class="total-card-label">Общая сумма ($)</div>
+                        <div class="total-card-value total-all">${totalAll.toFixed(2)} $</div>
+                    </div>
+                    <div class="total-card">
+                        <div class="total-card-label">✅ Оплачено ($)</div>
+                        <div class="total-card-value total-paid">${totalPaid.toFixed(2)} $</div>
+                    </div>
+                    <div class="total-card">
+                        <div class="total-card-label">❌ Не оплачено ($)</div>
+                        <div class="total-card-value total-unpaid">${totalUnpaid.toFixed(2)} $</div>
+                    </div>
+                    <div class="total-card">
+                        <div class="total-card-label">Общая сумма (сом)</div>
+                        <div class="total-card-value total-som">${totalSom.toLocaleString()} с</div>
+                    </div>
+                    <div class="total-card">
+                        <div class="total-card-label">✅ Оплачено (сом)</div>
+                        <div class="total-card-value total-paid">${totalSomPaid.toLocaleString()} с</div>
+                    </div>
+                    <div class="total-card">
+                        <div class="total-card-label">❌ Не оплачено (сом)</div>
+                        <div class="total-card-value total-unpaid">${totalSomUnpaid.toLocaleString()} с</div>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+
+        function displayTotals(totalAll, totalPaid, totalUnpaid, totalSom, totalSomPaid, totalSomUnpaid, employeeDebts) {
+            const container = document.getElementById('totalsSummary');
+            
+            let html = `
+                <h3 style="margin-bottom: 15px; color: #2c3e50; text-align: center;">📊 Итоговые суммы</h3>
+                <div class="totals-grid">
+                    <div class="total-card">
+                        <div class="total-card-label">Общая сумма ($)</div>
+                        <div class="total-card-value total-all">${totalAll.toFixed(2)} $</div>
+                    </div>
+                    <div class="total-card">
+                        <div class="total-card-label">✅ Оплачено ($)</div>
+                        <div class="total-card-value total-paid">${totalPaid.toFixed(2)} $</div>
+                    </div>
+                    <div class="total-card">
+                        <div class="total-card-label">❌ Не оплачено ($)</div>
+                        <div class="total-card-value total-unpaid">${totalUnpaid.toFixed(2)} $</div>
+                    </div>
+                    <div class="total-card">
+                        <div class="total-card-label">Общая сумма (сом)</div>
+                        <div class="total-card-value total-som">${totalSom.toLocaleString()} с</div>
+                    </div>
+                    <div class="total-card">
+                        <div class="total-card-label">✅ Оплачено (сом)</div>
+                        <div class="total-card-value total-paid">${totalSomPaid.toLocaleString()} с</div>
+                    </div>
+                    <div class="total-card">
+                        <div class="total-card-label">❌ Не оплачено (сом)</div>
+                        <div class="total-card-value total-unpaid">${totalSomUnpaid.toLocaleString()} с</div>
+                    </div>
+                </div>
+            `;
+            
+            if (Object.keys(employeeDebts).length > 0) {
+                html += '<div class="employee-debts"><h4 style="margin-bottom: 10px; color: #2c3e50;">💰 Долги по сотрудникам (в долларах):</h4>';
+                for (let employee in employeeDebts) {
+                    html += `
+                        <div class="employee-debt-item">
+                            <span class="employee-name">${employee}</span>
+                            <span class="employee-debt">${employeeDebts[employee].toFixed(2)} $</span>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+            }
+            
+            container.innerHTML = html;
+        }
+
+        init();
+    </script>
+</body>
+</html>
